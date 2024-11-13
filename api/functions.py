@@ -89,7 +89,7 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
             final_body = replace_variables(user_input=str(body), variables=virtual_variable_list)
         try:
             if str(method).upper() == 'GET':
-                response = requests.get(url=url, headers={"Content-Type": "application/json"}, json=final_body)
+                response = requests.get(url=url, headers={"Content-Type": "application/json"}, json={'message': 'GET method can\'t have body'})
                 if response.status_code != 200:
                     return False
                 return True
@@ -119,3 +119,23 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
     if action_type == 'email':
         return True
     return False
+
+
+def upload_to_virustotal(log_content, api_key):
+    url = "https://www.virustotal.com/api/v3/files"
+    headers = {"x-apikey": api_key}
+    files = {'file': ('log.txt', log_content)}
+    response = requests.post(url, headers=headers, files=files)
+    if response.status_code == 200:
+        json_response = response.json()
+        return json_response.get("data", {}).get("id")
+    return None
+
+
+def get_virustotal_report(scan_id, api_key):
+    url = f"https://www.virustotal.com/api/v3/analyses/{scan_id}"
+    headers = {"x-apikey": api_key}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    return None

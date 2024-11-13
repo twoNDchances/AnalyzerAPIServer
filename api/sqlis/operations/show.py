@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class SQLInjectionRuleDetails(Resource):
@@ -36,13 +36,13 @@ class SQLInjectionRuleDetails(Resource):
                         },
                         "_source": False
                     },
-                    size=1000000000
+                    size=ES_MAX_RESULT
                 )
         choice_rules = {
             'choice': 'not_used' if sqli['_source']['rule_library'] is None else sqli.raw['_source']['rule_library'],
             'rules': [rule_type['key'] for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']]
         }
-        actions = response_elasticsearch.search(index='analyzer-actions', query={'match_all': {}}, size=1000000000)
+        actions = response_elasticsearch.search(index='analyzer-actions', query={'match_all': {}}, size=ES_MAX_RESULT)
         choice_actions = {
             'choice': 'not_used' if sqli['_source']['action_id'] is None else self.get_action_name_by_id(id=sqli['_source']['action_id']),
             'actions': [action['_source']['action_name'] for action in actions.raw['hits']['hits']]

@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from json import loads
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class RuleInheritances(Resource):
@@ -29,7 +29,7 @@ class RuleInheritances(Resource):
                     }
                 },
                 "_source": False
-            }, size=1000000000
+            }, size=ES_MAX_RESULT
         )
         return {
             'type': 'rules',
@@ -75,7 +75,7 @@ class RuleInheritances(Resource):
                 'data': None,
                 'reason': 'BadRequest: Rule Description is required'
             }, 400
-        rules = response_elasticsearch.search(index='analyzer-rules', body={"query": {"match_all": {}}}, size=1000000000)
+        rules = response_elasticsearch.search(index='analyzer-rules', body={"query": {"match_all": {}}}, size=ES_MAX_RESULT)
         for rule in rules.raw['hits']['hits']:
             if rule['_source']['rule_type'] == rule_type:
                 return {

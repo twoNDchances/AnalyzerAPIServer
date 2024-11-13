@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from json import loads
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class CrossSiteScriptingRuleModifications(Resource):
@@ -65,7 +65,7 @@ class CrossSiteScriptingRuleModifications(Resource):
                     },
                     "_source": False
                 },
-                size=1000000000
+                size=ES_MAX_RESULT
             )
         rule_type_list = ['not_used']
         for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']:
@@ -88,7 +88,7 @@ class CrossSiteScriptingRuleModifications(Resource):
                     },
                     "_source": False
                 },
-                size=1000000000
+                size=ES_MAX_RESULT
             )
         action_name_list = ['not_used']
         for action_name in action_names.raw['aggregations']['unique_names']['buckets']:
@@ -177,7 +177,7 @@ class CrossSiteScriptingRuleModifications(Resource):
         }
     
     def get_id_by_action_name(self, action_name: str):
-        action = response_elasticsearch.search(index='analyzer-actions', query={'match_phrase': {'action_name': action_name}}, size=1000000000)
+        action = response_elasticsearch.search(index='analyzer-actions', query={'match_phrase': {'action_name': action_name}}, size=ES_MAX_RESULT)
         return action.raw['hits']['hits'][0]['_id']
     
     def get_action_type_by_id(self, id: str):

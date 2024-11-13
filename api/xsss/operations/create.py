@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from json import loads
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class CrossSiteScriptingRuleCreations(Resource):
@@ -51,7 +51,7 @@ class CrossSiteScriptingRuleCreations(Resource):
                     },
                     "_source": False
                 },
-                size=1000000000
+                size=ES_MAX_RESULT
             )
         rule_type_list = ['not_used']
         for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']:
@@ -74,7 +74,7 @@ class CrossSiteScriptingRuleCreations(Resource):
                     },
                     "_source": False
                 },
-                size=1000000000
+                size=ES_MAX_RESULT
             )
         action_name_list = ['not_used']
         for action_name in action_names.raw['aggregations']['unique_names']['buckets']:
@@ -91,14 +91,14 @@ class CrossSiteScriptingRuleCreations(Resource):
                 'data': None,
                 'reason': 'NotAcceptable: Regex Matcher cannot be left blank if Rule Library is not used and vice versa'
             }, 406
-        xsss = response_elasticsearch.search(index='analyzer-xsss', query={"match_phrase": {"rule_name": request_body['ruleName']}}, size=1000000000)
+        xsss = response_elasticsearch.search(index='analyzer-xsss', query={"match_phrase": {"rule_name": request_body['ruleName']}}, size=ES_MAX_RESULT)
         if xsss.raw['hits']['hits'].__len__() > 0:
             return {
                 'type': 'xsss',
                 'data': None,
                 'reason': 'NotAcceptable: Rule Name is already exist'
             }, 406
-        actions = response_elasticsearch.search(index='analyzer-actions', query={"match_phrase": {"action_name": request_body['action']}}, size=1000000000)
+        actions = response_elasticsearch.search(index='analyzer-actions', query={"match_phrase": {"action_name": request_body['action']}}, size=ES_MAX_RESULT)
         response_elasticsearch.index(index='analyzer-xsss', document={
             'rule_name': request_body['ruleName'],
             'is_enabled': True if request_body['isEnabled'] == 'true' else False,

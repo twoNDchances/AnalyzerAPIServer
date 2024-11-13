@@ -4,5 +4,5 @@ export ES_PASS="elastic"
 export ES_MAX_RESULT=1000000000
 
 export BACKEND_HOST="0.0.0.0"
-export BACKEND_PORT="9947"
+export BACKEND_PORT=9947
 export BACKEND_YAML="config/analyzer_manifest.yaml"

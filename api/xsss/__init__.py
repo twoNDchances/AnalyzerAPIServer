@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from json import loads
 from .operations import xss_operation_blueprint
-from ..storage import response_elasticsearch
+from ..storage import response_elasticsearch, ES_MAX_RESULT
 from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action
 
 
@@ -20,7 +20,7 @@ def xss_analyzer_endpoint(rule_name: str):
             'data': None,
             'reason': 'InternalServerError: Can\'t connect to Elasticsearch'
         }, 500
-    xss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_name': rule_name}}, size=1000000000)
+    xss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_name': rule_name}}, size=ES_MAX_RESULT)
     xss_result = xss.raw['hits']['hits']
     if xss_result.__len__() != 1:
         return {
@@ -34,15 +34,15 @@ def xss_analyzer_endpoint(rule_name: str):
             'type': 'xss_analyzer',
             'data': None,
             'reason': 'Success: This analyzer is disabled'
-        }        
+        }
     try:
         loads(request.data)
     except:
         return {
             'type': 'xss_analyzer',
             'data': None,
-            'reason': 'Body must be JSON'
-        }, 
+            'reason': 'BadRequest: Body must be JSON'
+        }, 400
     target_field = xss_analyzer['_source']['target_field']
     ip_root_cause_field = xss_analyzer['_source']['ip_root_cause_field']
     regex_matcher = xss_analyzer['_source']['regex_matcher']
@@ -76,7 +76,7 @@ def xss_analyzer_endpoint(rule_name: str):
         else:
             rules.append(re.compile(rf'{regex_matcher}'))
     if rule_library is not None:
-        rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': rule_library}}, size=1000000000)
+        rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': rule_library}}, size=ES_MAX_RESULT)
         for library in rule_libraries.raw['hits']['hits']:
             if is_valid_regex(pattern=library['_source']['rule_execution']) is False:
                 error_logs.append({
@@ -252,20 +252,21 @@ def xss_analyzer_endpoint(rule_name: str):
                                     'message': 'Action perform fail with some reasons',
                                     'pattern': action[3]
                                 })
-                    return {
-                        'type': 'xss_analyzer',
-                        'data': result,
-                        'reason': 'Success: Potential Cross Site Scripting Injection detected'
-                    } if result is not None else {
-                        'type': 'xss_analyzer',
-                        'data': None,
-                        'reason': 'Success: Clean log'
-                    }
+                        return {
+                            'type': 'xss_analyzer',
+                            'data': result,
+                            'reason': 'Success: Potential Cross Site Scripting Injection detected'
+                        }
                 else:
                     error_logs.append({
                         'message': 'Target Field is not exist',
                         'pattern': f'{path}'
                     })
+            return {
+                'type': 'xss_analyzer',
+                'data': None,
+                'reason': 'Success: Clean log'
+            }
         else:
             error_logs.append({
                 'message': 'Target Field is invalid format',

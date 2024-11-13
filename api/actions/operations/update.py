@@ -2,7 +2,7 @@ from flask import request
 from flask_restful import Resource
 from json import dumps, loads
 from requests import get
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class ActionModifications(Resource):
@@ -130,7 +130,7 @@ class ActionModifications(Resource):
                 'match_phrase': {
                     'action_name': action_name
                 }
-            }, size=1000000000).raw['hits']['hits'].__len__() > 0:
+            }, size=ES_MAX_RESULT).raw['hits']['hits'].__len__() > 0:
                 return {
                     'type': 'actions',
                     'data': None,

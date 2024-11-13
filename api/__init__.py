@@ -9,6 +9,11 @@ from .sqlis import sqli_analyzer_blueprint
 from .xsss import xss_main_blueprint
 from .xsss import xss_analyzer_blueprint
 
+from .fus import fus_main_blueprint
+from .fus import fus_analyzer_blueprint
+
+from .yaras import yara_main_blueprint
+
 from .actions import action_main_blueprint
 
 
@@ -48,9 +53,12 @@ def internal_server_error_page(error):
 
 application.register_blueprint(blueprint=sqli_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=xss_main_blueprint, url_prefix='/api')
+application.register_blueprint(blueprint=fus_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=rule_main_blueprint, url_prefix='/api')
+application.register_blueprint(blueprint=yara_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=action_main_blueprint, url_prefix='/api')
 
 application.register_blueprint(blueprint=sqli_analyzer_blueprint)
 application.register_blueprint(blueprint=xss_analyzer_blueprint)
+application.register_blueprint(blueprint=fus_analyzer_blueprint)
 

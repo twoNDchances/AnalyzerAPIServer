@@ -27,15 +27,23 @@ else:
 
     if es.indices.exists(index='analyzer-xsss'):
         es.indices.delete(index='analyzer-xsss')
-    
+
+    if es.indices.exists(index='analyzer-fus'):
+        es.indices.delete(index='analyzer-fus')
+
     if es.indices.exists(index='analyzer-rules'):
         es.indices.delete(index='analyzer-rules')
+
+    if es.indices.exists(index='analyzer-yaras'):
+        es.indices.delete(index='analyzer-yaras')
 
     es.indices.create(index="analyzer-actions", body=index_settings)
     es.indices.create(index="analyzer-results", body=index_settings)
     es.indices.create(index="analyzer-sqlis", body=index_settings)
     es.indices.create(index="analyzer-xsss", body=index_settings)
+    es.indices.create(index="analyzer-fus", body=index_settings)
     es.indices.create(index="analyzer-rules", body=index_settings)
+    es.indices.create(index="analyzer-yaras", body=index_settings)
     sqli_rules = [
         {
             'rule_type': 'SQLI',
@@ -122,7 +130,7 @@ else:
         },
         {
             'rule_type': 'XSS',
-            'rule_execution': '(?i)<.*?img.*?\b[^>]*?(onerror.*?=|>)',
+            'rule_execution': '(?i)<.*?img.*?\\b[^>]*?(onerror.*?=|>)',
             'rule_description': 'Detect img onerror event'
         },
         {
@@ -132,7 +140,7 @@ else:
         },
         {
             'rule_type': 'XSS',
-            'rule_execution': '(?i)<.*?body.*?\b[^>]*?(onload.*?=|>)',
+            'rule_execution': '(?i)<.*?body.*?\\b[^>]*?(onload.*?=|>)',
             'rule_description': 'Detect body onload event'
         },
         {
@@ -162,11 +170,42 @@ else:
         },
     ]
 
+    fu_rules = [
+        {
+            'rule_type': 'FU',
+            'rule_execution': '\\b(exec|eval|passthru|shell_exec|system|popen|proc_open)\\b',
+            'rule_description': 'System exec'
+        },
+        {
+            'rule_type': 'FU',
+            'rule_execution': '\\b(file_get_contents|fopen|readfile|include|require|include_once|require_once)\\b',
+            'rule_description': 'File operations'
+        },
+        {
+            'rule_type': 'FU',
+            'rule_execution': '\\b(base64_decode|base64_encode|gzinflate|gzdecode|gzuncompress)\\b',
+            'rule_description': 'Encoding'
+        },
+        {
+            'rule_type': 'FU',
+            'rule_execution': '\\$\\{?\\$_(GET|POST|REQUEST|COOKIE|SERVER)\\b',
+            'rule_description': 'Variable access'
+        },
+        {
+            'rule_type': 'FU',
+            'rule_execution': '\b(chmod|unlink|curl_exec|curl_multi_exec|apache_child_terminate|posix_kill|posix_mkfifo|posix_setsid|proc_get_status|proc_nice)\\b',
+            'rule_description': 'Dangerous functions'
+        },
+    ]
+
     for sqli_rule in sqli_rules:
         es.index(index="analyzer-rules", document=sqli_rule)
 
     for xss_rule in xss_rules:
         es.index(index="analyzer-rules", document=xss_rule)
+
+    for fu_rule in fu_rules:
+        es.index(index="analyzer-rules", document=fu_rule)
 
     es.index(index='analyzer-sqlis', document={
         'rule_name': 'my-rule-1',

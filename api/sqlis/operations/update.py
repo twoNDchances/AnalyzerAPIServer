@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from json import loads
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class SQLInjectionRuleModifications(Resource):
@@ -65,7 +65,7 @@ class SQLInjectionRuleModifications(Resource):
                     },
                     "_source": False
                 },
-                size=1000000000
+                size=ES_MAX_RESULT
             )
         rule_type_list = ['not_used']
         for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']:
@@ -88,7 +88,7 @@ class SQLInjectionRuleModifications(Resource):
                     },
                     "_source": False
                 },
-                size=1000000000
+                size=ES_MAX_RESULT
             )
         action_name_list = ['not_used']
         for action_name in action_names.raw['aggregations']['unique_names']['buckets']:
@@ -113,7 +113,7 @@ class SQLInjectionRuleModifications(Resource):
         old_rule_library = sqli.raw['_source']['rule_library']
         old_action_id = sqli.raw['_source']['action_id']
         if old_rule_name != request_body.get('ruleName'):
-            sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_name': request_body['ruleName']}}, size=1000000000)
+            sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_name': request_body['ruleName']}}, size=ES_MAX_RESULT)
             if sqlis.raw['hits']['hits'].__len__() > 0:
                 return {
                     'type': 'sqlis',
@@ -177,7 +177,7 @@ class SQLInjectionRuleModifications(Resource):
         }
     
     def get_id_by_action_name(self, action_name: str):
-        action = response_elasticsearch.search(index='analyzer-actions', query={'match_phrase': {'action_name': action_name}}, size=1000000000)
+        action = response_elasticsearch.search(index='analyzer-actions', query={'match_phrase': {'action_name': action_name}}, size=ES_MAX_RESULT)
         return action.raw['hits']['hits'][0]['_id']
     
     def get_action_type_by_id(self, id: str):

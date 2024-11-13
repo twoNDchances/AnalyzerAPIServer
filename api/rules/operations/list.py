@@ -1,6 +1,6 @@
 from flask import request
 from flask_restful import Resource
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class RuleLibraries(Resource):
@@ -30,14 +30,14 @@ class RuleLibraries(Resource):
                         },
                         "_source": False
                     },
-                    size=1000000000
+                    size=ES_MAX_RESULT
                 )
             return {
                 'type': 'rules',
                 'data': [rule_type['key'] for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']],
                 'reason': 'Success'
             }
-        rules = response_elasticsearch.search(index='analyzer-rules', body={"query": {"match_all": {}}}, size=1000000000)
+        rules = response_elasticsearch.search(index='analyzer-rules', body={"query": {"match_all": {}}}, size=ES_MAX_RESULT)
         return {
             'type': 'rules',
             'data': [{

@@ -1,6 +1,5 @@
-from flask import jsonify
 from flask_restful import Resource
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class SQLInjectionRuleLists(Resource):
@@ -17,7 +16,7 @@ class SQLInjectionRuleLists(Resource):
                 'data': None,
                 'reason': 'NotFound: Not found any record in SQLIs'
             }, 404
-        sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={"match_all": {}}, size=1000000000)
+        sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={"match_all": {}}, size=ES_MAX_RESULT)
         return {
             'type': 'sqlis',
             'data': [{

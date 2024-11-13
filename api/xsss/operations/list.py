@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class CrossSiteScriptingRuleLists(Resource):
@@ -16,7 +16,7 @@ class CrossSiteScriptingRuleLists(Resource):
                 'data': None,
                 'reason': 'NotFound: Not found any record in XSSs'
             }, 404
-        xsss = response_elasticsearch.search(index='analyzer-xsss', query={"match_all": {}}, size=1000000000)
+        xsss = response_elasticsearch.search(index='analyzer-xsss', query={"match_all": {}}, size=ES_MAX_RESULT)
         return {
             'type': 'xsss',
             'data': [{

@@ -2,7 +2,7 @@ from flask import request
 from flask_restful import Resource
 from json import loads, dumps
 from requests import get
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class ActionCreations(Resource):
@@ -46,7 +46,7 @@ class ActionCreations(Resource):
                 'data': None,
                 'reason': 'BadRequest: Missing required fields'
             }, 400
-        actions = response_elasticsearch.search(index='analyzer-actions', body={"query": {"match_all": {}}}, size=1000000000)
+        actions = response_elasticsearch.search(index='analyzer-actions', body={"query": {"match_all": {}}}, size=ES_MAX_RESULT)
         for action in actions.raw['hits']['hits']:
             if action['_source']['action_name'] == action_name:
                 return {

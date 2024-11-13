@@ -1,6 +1,6 @@
 from flask import request
 from flask_restful import Resource
-from ...storage import response_elasticsearch
+from ...storage import response_elasticsearch, ES_MAX_RESULT
 
 
 class ActionLists(Resource):
@@ -30,14 +30,14 @@ class ActionLists(Resource):
                         },
                         "_source": False
                     },
-                    size=1000000000
+                    size=ES_MAX_RESULT
                 )
             return {
                 'type': 'actions',
                 'data': [action_name['key'] for action_name in action_names.raw['aggregations']['unique_names']['buckets']],
                 'reason': 'Success'
             }
-        actions = response_elasticsearch.search(index='analyzer-actions', body={"query": {"match_all": {}}}, size=1000000000)
+        actions = response_elasticsearch.search(index='analyzer-actions', body={"query": {"match_all": {}}}, size=ES_MAX_RESULT)
         return {
             'type': 'action',
             'data': [{
