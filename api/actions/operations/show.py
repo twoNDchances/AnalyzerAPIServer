@@ -37,6 +37,13 @@ class ActionDetails(Resource):
         if xss_results.__len__() > 0:
             for xss_result in xss_results:
                 xss_related_actions.append(xss_result['_source']['rule_name'])
+        
+        fu_related_actions = []
+        fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'action_id': id}}, size=ES_MAX_RESULT)
+        fu_results = fus.raw['hits']['hits']
+        if fu_results.__len__() > 0:
+            for fu_result in fu_results:
+                fu_related_actions.append(fu_result['_source']['rule_name'])
         return {
             'type': 'action',
             'data': {
@@ -46,7 +53,8 @@ class ActionDetails(Resource):
                 'action_configuration': action.raw['_source']['action_configuration'],
                 'rule_related': {
                     'sqli': sqli_related_actions,
-                    'xss': xss_related_actions
+                    'xss': xss_related_actions,
+                    'fu': fu_related_actions
                 }
             },
             'reason': 'Success'

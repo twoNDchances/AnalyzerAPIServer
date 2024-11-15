@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from json import loads
+from json import loads, dumps
 from .operations import xss_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
 from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action
@@ -12,7 +12,7 @@ xss_main_blueprint.register_blueprint(blueprint=xss_operation_blueprint, url_pre
 xss_analyzer_blueprint = Blueprint(name='xss_analyzer_blueprint', import_name=__name__)
 
 
-@xss_analyzer_blueprint.route('/xss/<string:rule_name>', methods=['POST'])
+@xss_analyzer_blueprint.route('/xsss/<string:rule_name>', methods=['POST'])
 def xss_analyzer_endpoint(rule_name: str):
     if response_elasticsearch.ping() is False:
         return {
@@ -35,6 +35,16 @@ def xss_analyzer_endpoint(rule_name: str):
             'data': None,
             'reason': 'Success: This analyzer is disabled'
         }
+    analyzer_result = response_elasticsearch.search(index='analyzer-results', query={'bool': {
+        'must': {
+            'match_phrase': {
+                'reference': xss_analyzer['_source']['rule_name']
+            },
+            'match_phrase': {
+                'analyzer': 'XSSs'
+            }
+        }
+    }}, size=ES_MAX_RESULT).raw['hits']['hits']
     try:
         loads(request.data)
     except:
@@ -48,7 +58,11 @@ def xss_analyzer_endpoint(rule_name: str):
     regex_matcher = xss_analyzer['_source']['regex_matcher']
     rule_library = xss_analyzer['_source']['rule_library']
     action_id = xss_analyzer['_source']['action_id']
-    error_logs = []
+    logs = {
+        '[Warning]': [],
+        '[Error]': [],
+        '[Info]': []
+    }
     result = None
     json = request.get_json()
     rules = []
@@ -56,22 +70,28 @@ def xss_analyzer_endpoint(rule_name: str):
     ip_root_cause_field_validation = parse_path(path=ip_root_cause_field)
     all_fields = traverse_json(data=json)
     if ip_root_cause_field_validation is None or str(type(ip_root_cause_field_validation)) != "<class 'str'>":
-        error_logs.append({
-            'message': 'IP Root Cause Field is invalid format',
-            'pattern': ip_root_cause_field
+        logs['[Warning]'].append({
+            'Analyzers': {
+                'message': 'IP Root Cause Field is invalid format',
+                'pattern': ip_root_cause_field
+            }
         })
     else:
         ip_root_cause_field_value = get_value_from_json(data=json, path=ip_root_cause_field)
         if ip_root_cause_field_value is None or str(type(ip_root_cause_field_value)) != "<class 'str'>":
-            error_logs.append({
-                'message': 'IP Root Cause Field is not exist or invalid data type',
-                'pattern': ip_root_cause_field
+            logs['[Warning]'].append({
+                'Analyzers': {
+                    'message': 'IP Root Cause Field is not exist or invalid data type',
+                    'pattern': ip_root_cause_field
+                }
             })
     if regex_matcher.__len__() > 0:
         if is_valid_regex(pattern=regex_matcher) is False:
-            error_logs.append({
-                'message': 'Regex Matcher is invalid',
-                'pattern': regex_matcher
+            logs['[Warning]'].append({
+                'Analyzers': {
+                    'message': 'Regex Matcher is invalid',
+                    'pattern': regex_matcher
+                }
             })
         else:
             rules.append(re.compile(rf'{regex_matcher}'))
@@ -79,9 +99,11 @@ def xss_analyzer_endpoint(rule_name: str):
         rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': rule_library}}, size=ES_MAX_RESULT)
         for library in rule_libraries.raw['hits']['hits']:
             if is_valid_regex(pattern=library['_source']['rule_execution']) is False:
-                error_logs.append({
-                    'message': f'Rule id {library['_id']} is invalid from {library['_source']['rule_type']}',
-                    'pattern': library['_source']['rule_execution']
+                logs['[Warning]'].append({
+                    'Rule Libraries': {
+                        'message': f'Rule id {library['_id']} is invalid from {library['_source']['rule_type']}',
+                        'pattern': library['_source']['rule_execution']
+                    }
                 })
             else:
                 rules.append(re.compile(rf'{library['_source']['rule_execution']}'))
@@ -93,11 +115,11 @@ def xss_analyzer_endpoint(rule_name: str):
                     for rule in rules:
                         if rule.search(str(value)):
                             result = {
-                                'message': f'Detected from {rule_name} analyzer',
+                                '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': key,
                                 'field_value': value,
                                 'by_rule': str(rule),
-                                'ip_root_cause': ip_root_cause_field_value
+                                '_ip_root_cause_': ip_root_cause_field_value
                             }
                             flag = True
                             break
@@ -106,6 +128,10 @@ def xss_analyzer_endpoint(rule_name: str):
                 if flag:
                     break
             if result is not None:
+                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                    'match_count': analyzer_result[0]['_source']['match_count'] + 1,
+                    'logs': dumps(logs)
+                })
                 if action_id is not None:
                     try:
                         action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -128,15 +154,25 @@ def xss_analyzer_endpoint(rule_name: str):
                         'action': action.raw['_source']['action_name'],
                         'result': result
                     }, default_body=result) is False:
-                        error_logs.append({
-                            'message': 'Action perform fail with some reasons',
-                            'pattern': action['_source']['action_configuration']
+                        logs['[Error]'].append({
+                            'Actions': {
+                                'message': 'Action perform fail with some reasons',
+                                'pattern': action['_source']['action_configuration']
+                            }
                         })
+                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                            'logs': dumps(logs)
+                        })
+                    else:
+                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                            'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
+                        })
+                return {
+                    'type': 'xss_analyzer',
+                    'data': result,
+                    'reason': 'Success: Potential Cross Site Scripting detected'
+                } 
             return {
-                'type': 'xss_analyzer',
-                'data': result,
-                'reason': 'Success: Potential Cross Site Scripting detected'
-            } if result is not None else {
                 'type': 'xss_analyzer',
                 'data': None,
                 'reason': 'Success: Clean log'
@@ -156,14 +192,18 @@ def xss_analyzer_endpoint(rule_name: str):
                 for rule in rules:
                     if rule.search(json_value_str):
                         result = {
-                            'message': f'Detected from {rule_name} analyzer',
+                            '_message_': f'Detected from {rule_name} analyzer',
                             'field_name': target_field,
                             'field_value': json_value_str,
                             'by_rule': str(rule),
-                            'ip_root_cause': ip_root_cause_field_value
+                            '_ip_root_cause_': ip_root_cause_field_value
                         }
                         break
                 if result is not None:
+                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                        'match_count': analyzer_result[0]['_source']['match_count'] + 1,
+                        'logs': dumps(logs)
+                    })
                     if action_id is not None:
                         try:
                             action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -186,23 +226,36 @@ def xss_analyzer_endpoint(rule_name: str):
                             'action': action.raw['_source']['action_name'],
                             'result': result
                         }, default_body=result) is False:
-                            error_logs.append({
-                                'message': 'Action perform fail with some reasons',
-                                'pattern': action.raw['_source']['action_configuration']
+                            logs['[Error]'].append({
+                                'Actions': {
+                                    'message': 'Action perform fail with some reasons',
+                                    'pattern': action.raw['_source']['action_configuration']
+                                }
                             })
+                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                'logs': dumps(logs)
+                            })
+                        else:
+                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
+                            })
+                    return {
+                        'type': 'xss_analyzer',
+                        'data': result,
+                        'reason': 'Success: Potential Cross Site Scripting detected'
+                    }
                 return {
-                    'type': 'xss_analyzer',
-                    'data': result,
-                    'reason': 'Success: Potential Cross Site Scripting detected'
-                } if result is not None else {
                     'type': 'xss_analyzer',
                     'data': None,
                     'reason': 'Success: Clean log'
                 }
             else:
-                error_logs.append({
-                    'message': 'Target Field is not exist',
+                logs['[Info]'].append({
+                    'message': 'Target Field is not exist, skipped',
                     'pattern': f'{target_field}'
+                })
+                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                    'logs': dumps(logs)
                 })
         elif str(type(target_field_path)) == "<class 'list'>":
             target_field_value = []
@@ -218,14 +271,18 @@ def xss_analyzer_endpoint(rule_name: str):
                     for rule in rules:
                         if rule.search(json_value_str):
                             result = {
-                                'message': f'Detected from {rule_name} analyzer',
+                                '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': path,
                                 'field_value': json_value_str,
                                 'by_rule': str(rule),
-                                'ip_root_cause': ip_root_cause_field_value
+                                '_ip_root_cause_': ip_root_cause_field_value
                             }
                             break
                     if result is not None:
+                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                            'match_count': analyzer_result[0]['_source']['match_count'] + 1,
+                            'logs': dumps(logs)
+                        })
                         if action_id is not None:
                             try:
                                 action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -248,9 +305,18 @@ def xss_analyzer_endpoint(rule_name: str):
                                 'action': action.raw['_source']['action_name'],
                                 'result': result
                             }, default_body=result) is False:
-                                error_logs.append({
-                                    'message': 'Action perform fail with some reasons',
-                                    'pattern': action[3]
+                                logs['[Error]'].append({
+                                    'Actions': {
+                                        'message': 'Action perform fail with some reasons',
+                                        'pattern': action[3]
+                                    }
+                                })
+                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                    'logs': dumps(logs)
+                                })
+                            else:
+                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                    'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
                                 })
                         return {
                             'type': 'xss_analyzer',
@@ -258,9 +324,14 @@ def xss_analyzer_endpoint(rule_name: str):
                             'reason': 'Success: Potential Cross Site Scripting Injection detected'
                         }
                 else:
-                    error_logs.append({
-                        'message': 'Target Field is not exist',
-                        'pattern': f'{path}'
+                    logs['[Info]'].append({
+                        'Analyzers': {
+                            'message': 'Target Field is not exist, skipped',
+                            'pattern': f'{path}'
+                        }
+                    })
+                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                        'logs': dumps(logs)
                     })
             return {
                 'type': 'xss_analyzer',
@@ -268,9 +339,14 @@ def xss_analyzer_endpoint(rule_name: str):
                 'reason': 'Success: Clean log'
             }
         else:
-            error_logs.append({
-                'message': 'Target Field is invalid format',
-                'pattern': f'{target_field}'
+            logs['[Error]'].append({
+                'Analyzers': {
+                    'message': 'Target Field is invalid format',
+                    'pattern': f'{target_field}'
+                }
+            })
+            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                'logs': dumps(logs)
             })
     return {
         'type': 'xss_analyzer',

@@ -112,7 +112,9 @@ class CrossSiteScriptingRuleCreations(Resource):
         response_elasticsearch.index(index='analyzer-results', document={
             'analyzer': 'XSSs',
             'reference': request_body['ruleName'],
-            'log': '{}'
+            'match_count': 0,
+            'execution_count': 0,
+            'logs': '{}'
         })
         return {
             'type': 'xsss',

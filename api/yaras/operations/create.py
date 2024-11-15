@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from json import loads
-from ...storage import response_elasticsearch, ES_MAX_RESULT
+from ...storage import response_elasticsearch
 
 
 class YARARuleCreations(Resource):

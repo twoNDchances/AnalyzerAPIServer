@@ -22,7 +22,7 @@ class FileUploadRuleCreations(Resource):
                 'reason': 'BadRequest: Body must be JSON'
             }, 400
         request_body = dict(request.get_json())
-        if (request_body.get('ruleName') and request_body.get('isEnabled') and request_body.get('targetField') and request_body.get('ipRootCauseField') and request_body.get('regexMatcher') and request_body.get('ruleLibrary') and request_body.get('virusTotalAPIKey') and request_body.get('action')) is None:
+        if (request_body.get('ruleName') and request_body.get('isEnabled') and request_body.get('targetField') and request_body.get('ipRootCauseField') and request_body.get('regexMatcher') and request_body.get('ruleLibrary') and request_body.get('action')) is None:
             return {
                 'type': 'fus',
                 'data': None,
@@ -120,17 +120,18 @@ class FileUploadRuleCreations(Resource):
             'regex_matcher': request_body['regexMatcher'],
             'rule_library': request_body['ruleLibrary'] if request_body['ruleLibrary'] != 'not_used' else None,
             'yara_rule_intergration': True if request_body.get('yaraRuleIntergration') is not None else False,
-            'virus_total_api_key': request_body['virusTotalAPIKey'] if request_body['virusTotalAPIKey'].__len__() > 0 else None,
             'action_id': actions.raw['hits']['hits'][0]['_id'] if actions.raw['hits']['hits'].__len__() == 1 else None,
             'type_attack': 'fu'
         })
         response_elasticsearch.index(index='analyzer-results', document={
             'analyzer': 'FUs',
             'reference': request_body['ruleName'],
-            'log': '{}'
+            'match_count': 0,
+            'execution_count': 0,
+            'logs': '{}'
         })
         return {
-            'type': 'sqlis',
+            'type': 'fus',
             'data': None,
             'reason': 'Success'
         }

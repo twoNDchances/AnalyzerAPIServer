@@ -14,6 +14,8 @@ from .fus import fus_analyzer_blueprint
 
 from .yaras import yara_main_blueprint
 
+from .results import result_main_blueprint
+
 from .actions import action_main_blueprint
 
 
@@ -56,6 +58,7 @@ application.register_blueprint(blueprint=xss_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=fus_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=rule_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=yara_main_blueprint, url_prefix='/api')
+application.register_blueprint(blueprint=result_main_blueprint, url_prefix='/api')
 application.register_blueprint(blueprint=action_main_blueprint, url_prefix='/api')
 
 application.register_blueprint(blueprint=sqli_analyzer_blueprint)

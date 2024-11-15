@@ -17,7 +17,7 @@ class SQLInjectionRuleDetails(Resource):
                 'reason': 'BadRequest: ID required'
             }, 400
         try:
-            sqli = response_elasticsearch.get(index='analyzer-sqlis', id=id)
+            sqli = response_elasticsearch.get(index='analyzer-sqlis', id=id).raw
         except:
             return {
                 'type': 'sqlis',
@@ -39,7 +39,7 @@ class SQLInjectionRuleDetails(Resource):
                     size=ES_MAX_RESULT
                 )
         choice_rules = {
-            'choice': 'not_used' if sqli['_source']['rule_library'] is None else sqli.raw['_source']['rule_library'],
+            'choice': 'not_used' if sqli['_source']['rule_library'] is None else sqli['_source']['rule_library'],
             'rules': [rule_type['key'] for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']]
         }
         actions = response_elasticsearch.search(index='analyzer-actions', query={'match_all': {}}, size=ES_MAX_RESULT)

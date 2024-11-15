@@ -17,7 +17,7 @@ class CrossSiteScriptingRuleDetails(Resource):
                 'reason': 'BadRequest: ID required'
             }, 400
         try:
-            xss = response_elasticsearch.get(index='analyzer-xsss', id=id)
+            xss = response_elasticsearch.get(index='analyzer-xsss', id=id).raw
         except:
             return {
                 'type': 'xsss',
@@ -39,7 +39,7 @@ class CrossSiteScriptingRuleDetails(Resource):
                     size=ES_MAX_RESULT
                 )
         choice_rules = {
-            'choice': 'not_used' if xss.raw['_source']['rule_library'] is None else xss['_source']['rule_library'],
+            'choice': 'not_used' if xss['_source']['rule_library'] is None else xss['_source']['rule_library'],
             'rules': [rule_type['key'] for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']]
         }
         actions = response_elasticsearch.search(index='analyzer-actions', query={'match_all': {}}, size=ES_MAX_RESULT)

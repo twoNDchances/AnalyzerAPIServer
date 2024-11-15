@@ -112,7 +112,9 @@ class SQLInjectionRuleCreations(Resource):
         response_elasticsearch.index(index='analyzer-results', document={
             'analyzer': 'SQLIs',
             'reference': request_body['ruleName'],
-            'log': '{}'
+            'match_count': 0,
+            'execution_count': 0,
+            'logs': '{}'
         })
         return {
             'type': 'sqlis',

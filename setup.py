@@ -207,123 +207,123 @@ else:
     for fu_rule in fu_rules:
         es.index(index="analyzer-rules", document=fu_rule)
 
-    es.index(index='analyzer-sqlis', document={
-        'rule_name': 'my-rule-1',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'sqli'
-    })
-    es.index(index='analyzer-sqlis', document={
-        'rule_name': 'my-rule-2',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'sqli'
-    })
-    es.index(index='analyzer-sqlis', document={
-        'rule_name': 'my-rule-3',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'sqli'
-    })
-    es.index(index='analyzer-sqlis', document={
-        'rule_name': 'my-rule-4',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'sqli'
-    })
-    es.index(index='analyzer-sqlis', document={
-        'rule_name': 'my-rule-5',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'sqli'
-    })
-    es.index(index='analyzer-sqlis', document={
-        'rule_name': 'my-rule-6',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'sqli'
-    })
-    es.index(index='analyzer-xsss', document={
-        'rule_name': 'my-rule-7',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'xss'
-    })
-    es.index(index='analyzer-xsss', document={
-        'rule_name': 'my-rule-8',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'xss'
-    })
-    es.index(index='analyzer-xsss', document={
-        'rule_name': 'my-rule-9',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'xss'
-    })
-    es.index(index='analyzer-xsss', document={
-        'rule_name': 'my-rule-10',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'xss'
-    })
-    es.index(index='analyzer-xsss', document={
-        'rule_name': 'my-rule-11',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'xss'
-    })
-    es.index(index='analyzer-xsss', document={
-        'rule_name': 'my-rule-12',
-        'is_enabled': True,
-        'target_field': 'request.body',
-        'ip_root_cause_field': 'client.ip',
-        'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
-        'rule_library': None,
-        'action_id': None,
-        'type_attack': 'xss'
-    })
+    # es.index(index='analyzer-sqlis', document={
+    #     'rule_name': 'my-rule-1',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'sqli'
+    # })
+    # es.index(index='analyzer-sqlis', document={
+    #     'rule_name': 'my-rule-2',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'sqli'
+    # })
+    # es.index(index='analyzer-sqlis', document={
+    #     'rule_name': 'my-rule-3',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'sqli'
+    # })
+    # es.index(index='analyzer-sqlis', document={
+    #     'rule_name': 'my-rule-4',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'sqli'
+    # })
+    # es.index(index='analyzer-sqlis', document={
+    #     'rule_name': 'my-rule-5',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'sqli'
+    # })
+    # es.index(index='analyzer-sqlis', document={
+    #     'rule_name': 'my-rule-6',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'sqli'
+    # })
+    # es.index(index='analyzer-xsss', document={
+    #     'rule_name': 'my-rule-7',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)\\b(OR|AND)\\s+\\d+=\\d+',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'xss'
+    # })
+    # es.index(index='analyzer-xsss', document={
+    #     'rule_name': 'my-rule-8',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'xss'
+    # })
+    # es.index(index='analyzer-xsss', document={
+    #     'rule_name': 'my-rule-9',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'xss'
+    # })
+    # es.index(index='analyzer-xsss', document={
+    #     'rule_name': 'my-rule-10',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'xss'
+    # })
+    # es.index(index='analyzer-xsss', document={
+    #     'rule_name': 'my-rule-11',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'xss'
+    # })
+    # es.index(index='analyzer-xsss', document={
+    #     'rule_name': 'my-rule-12',
+    #     'is_enabled': True,
+    #     'target_field': 'request.body',
+    #     'ip_root_cause_field': 'client.ip',
+    #     'regex_matcher': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
+    #     'rule_library': None,
+    #     'action_id': None,
+    #     'type_attack': 'xss'
+    # })

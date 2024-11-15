@@ -28,7 +28,6 @@ class FileUploadRuleLists(Resource):
                 'regex_matcher': 'Defined' if fu['_source']['regex_matcher'].__len__() > 0 else 'Undefined',
                 'rule_library': fu['_source']['rule_library'] if fu['_source']['rule_library'] is not None else 'Not Used',
                 'yara_rule_intergration': 'Yes' if fu['_source']['yara_rule_intergration'] is True else 'No',
-                'virus_total_api_key': 'Defined' if fu['_source']['virus_total_api_key'] is not None else 'Undefined',
                 'action_id': self.get_action_type_by_id(id=fu['_source']['action_id']) if fu['_source']['action_id'] is not None else 'Inaction'
             } for fu in fus.raw['hits']['hits']],
             'reason': 'Success'
