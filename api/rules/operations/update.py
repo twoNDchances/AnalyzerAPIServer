@@ -27,19 +27,19 @@ class RuleModifications(Resource):
                 'reason': 'NotFound'
             }, 404
         sqli_related_list = []
-        sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_library': rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
+        sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'term': {'rule_library.keyword': rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
         sqli_results = sqlis.raw['hits']['hits']
         if sqli_results.__len__() > 0:
             for sqli_result in sqli_results:
                 sqli_related_list.append(sqli_result['_source']['rule_name'])
         xss_related_list = []
-        xsss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_library': rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
+        xsss = response_elasticsearch.search(index='analyzer-xsss', query={'term': {'rule_library.keyword': rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
         xss_results = xsss.raw['hits']['hits']
         if xss_results.__len__() > 0:
             for xss_result in xss_results:
                 xss_related_list.append(xss_result['_source']['rule_name'])
         fu_related_list = []
-        fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'rule_library': rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
+        fus = response_elasticsearch.search(index='analyzer-fus', query={'term': {'rule_library.keyword': rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
         fu_results = fus.raw['hits']['hits']
         if fu_results.__len__() > 0:
             for fu_result in fu_results:
@@ -102,7 +102,7 @@ class RuleModifications(Resource):
         new_rule_execution = request_body.get('ruleExecution')
         new_rule_description = request_body.get('ruleDescription')
         if new_rule_type != rule.raw['_source']['rule_type']:
-            rules = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': new_rule_type}}, size=ES_MAX_RESULT).raw
+            rules = response_elasticsearch.search(index='analyzer-rules', query={'term': {'rule_type.keyword': new_rule_type}}, size=ES_MAX_RESULT).raw
             if rules['hits']['hits'].__len__() > 0:
                 return {
                     'type': 'rules',

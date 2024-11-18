@@ -127,7 +127,7 @@ class FileUploadRuleModifications(Resource):
         old_yara_rule_intergration = fu.raw['_source']['yara_rule_intergration']
         old_action_id = fu.raw['_source']['action_id']
         if old_rule_name != request_body.get('ruleName'):
-            fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'rule_name': request_body['ruleName']}}, size=ES_MAX_RESULT)
+            fus = response_elasticsearch.search(index='analyzer-fus', query={'term': {'rule_name.keyword': request_body['ruleName']}}, size=ES_MAX_RESULT)
             if fus.raw['hits']['hits'].__len__() > 0:
                 return {
                     'type': 'fus',
@@ -200,7 +200,7 @@ class FileUploadRuleModifications(Resource):
         }
     
     def get_id_by_action_name(self, action_name: str):
-        action = response_elasticsearch.search(index='analyzer-actions', query={'match_phrase': {'action_name': action_name}}, size=ES_MAX_RESULT)
+        action = response_elasticsearch.search(index='analyzer-actions', query={'term': {'action_name.keyword': action_name}}, size=ES_MAX_RESULT)
         return action.raw['hits']['hits'][0]['_id']
     
     def get_action_type_by_id(self, id: str):

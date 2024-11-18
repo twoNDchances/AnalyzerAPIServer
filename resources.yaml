@@ -1,0 +1,93 @@
+actions:
+  - action_name: action-default
+    action_type: webhook
+    action_configuration: >
+      {
+          "url": "http://192.168.1.3:5000",
+          "type": "custom",
+          "body": {
+              "result": "$result"
+          },
+          "method": "POST",
+          "connection_timeout": 2,
+          "data_read_timeout": 6,
+          "advanced": {
+              "is_enabled": true,
+              "threshold": 3,
+              "time_window_seconds": 30
+          }
+      }
+  - action_name: action-email
+    action_type: email
+    action_configuration: >
+      {
+          "to": "recipient@example.com",
+          "subject": "Action Email Notification",
+          "type": "default",
+          "body": {
+              "message": "Just a demo"
+          },
+          "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 587,
+              "username": "your_username",
+              "password": "your_password"
+          },
+          "advanced": {
+              "is_enabled": false,
+              "threshold": 3,
+              "time_window_seconds": 30
+          }
+      }
+fus:
+  - rule_name: fu-default
+    is_enabled: true
+    target_field: request.body
+    ip_root_cause_field: client.ip
+    regex_matcher: ""
+    rule_library: FU
+    yara_rule_intergration: true
+    action: action-default
+rules:
+  - rule_type: rule-default
+    includes:
+      - SQLI
+    definitions:
+      - rule_execution: >
+          aaaaaaaaaaaaaaaaaaaaaaaa
+        rule_description: >
+          aaaaaaaaaaaaaaaaaaaaaaaa
+      - rule_execution: >
+          aaaaaaaaaaaaaaaaaaaaaaaa
+        rule_description: >
+          aaaaaaaaaaaaaaaaaaaaaaaa
+      - rule_execution: >
+          aaaaaaaaaaaaaaaaaaaaaaaa
+        rule_description: >
+          aaaaaaaaaaaaaaaaaaaaaaaa
+sqlis:
+  - rule_name: sqli-default
+    is_enabled: true
+    target_field: request.body
+    ip_root_cause_field: client.ip
+    regex_matcher: ""
+    rule_library: SQLI
+    action: null
+xsss:
+  - rule_name: xss-default
+    is_enabled: true
+    target_field: request.body
+    ip_root_cause_field: client.ip
+    regex_matcher: ""
+    rule_library: XSS
+    action: null
+yaras:
+  - yara_rule: >
+      rule PHP_Tag_Detection {
+          strings:
+              $tag = "<?php"
+          condition:
+            any of them
+      }
+    yara_description: >
+      Detect PHP tag

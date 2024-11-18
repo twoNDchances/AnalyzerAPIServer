@@ -30,19 +30,19 @@ class RuleTerminations(Resource):
                     'reason': 'NotFound: Rule is not found'
                 }, 404
         sqli_related_list = []
-        sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_library': rule_type if rule_type is not None else rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
+        sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'term': {'rule_library.keyword': rule_type if rule_type is not None else rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
         sqli_results = sqlis.raw['hits']['hits']
         if sqli_results.__len__() > 0:
             for sqli_result in sqli_results:
                 sqli_related_list.append(sqli_result['_source']['rule_name'])
         xss_related_list = []
-        xsss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_library': rule_type if rule_type is not None else rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
+        xsss = response_elasticsearch.search(index='analyzer-xsss', query={'term': {'rule_library.keyword': rule_type if rule_type is not None else rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
         xss_results = xsss.raw['hits']['hits']
         if xss_results.__len__() > 0:
             for xss_result in xss_results:
                 xss_related_list.append(xss_result['_source']['rule_name'])
         fu_related_list = []
-        fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'rule_library': rule_type if rule_type is not None else rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
+        fus = response_elasticsearch.search(index='analyzer-fus', query={'term': {'rule_library.keyword': rule_type if rule_type is not None else rule['_source']['rule_type']}}, size=ES_MAX_RESULT)
         fu_results = fus.raw['hits']['hits']
         if fu_results.__len__() > 0:
             for fu_result in fu_results:
@@ -73,7 +73,7 @@ class RuleTerminations(Resource):
                     'data': None,
                     'reason': 'BadRequest: ID required'
                 }, 400
-            rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': rule_type}}, size=ES_MAX_RESULT)
+            rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'term': {'rule_type.keyword': rule_type}}, size=ES_MAX_RESULT)
             rule_library_results = rule_libraries.raw['hits']['hits']
             if rule_library_results.__len__() == 0:
                 return {
@@ -89,21 +89,21 @@ class RuleTerminations(Resource):
                         'reason': 'Forbidden: Rule Library default can\'t delete'
                     }, 403
                 response_elasticsearch.delete(index='analyzer-rules', id=rule_library_result['_id'])
-            sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_library': rule_type}}, size=ES_MAX_RESULT)
+            sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'term': {'rule_library.keyword': rule_type}}, size=ES_MAX_RESULT)
             sqli_results = sqlis.raw['hits']['hits']
             if sqli_results.__len__() > 0:
                 for sqli_result in sqli_results:
                     response_elasticsearch.update(index='analyzer-sqlis', id=sqli_result['_id'], doc={
                         'rule_library': 'SQLI'
                     })
-            xsss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_library': rule_type}}, size=ES_MAX_RESULT)
+            xsss = response_elasticsearch.search(index='analyzer-xsss', query={'term': {'rule_library.keyword': rule_type}}, size=ES_MAX_RESULT)
             xss_results = xsss.raw['hits']['hits']
             if xss_results.__len__() > 0:
                 for xss_result in xss_results:
                     response_elasticsearch.update(index='analyzer-xsss', id=xss_result['_id'], doc={
                         'rule_library': 'XSS'
                     })
-            fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'rule_library': rule_type}}, size=ES_MAX_RESULT)
+            fus = response_elasticsearch.search(index='analyzer-fus', query={'term': {'rule_library.keyword': rule_type}}, size=ES_MAX_RESULT)
             fu_results = fus.raw['hits']['hits']
             if fu_results.__len__() > 0:
                 for fu_result in fu_results:
@@ -125,24 +125,24 @@ class RuleTerminations(Resource):
                     'data': None,
                     'reason': 'Forbidden: Rule Library default can\'t delete'
                 }, 403
-            rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
+            rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'term': {'rule_type.keyword': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
             rule_library_results = rule_libraries.raw['hits']['hits']
             if rule_library_results.__len__() == 1:
-                sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_library': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
+                sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'term': {'rule_library.keyword': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
                 sqli_results = sqlis.raw['hits']['hits']
                 if sqli_results.__len__() > 0:
                     for sqli_result in sqli_results:
                         response_elasticsearch.update(index='analyzer-sqlis', id=sqli_result['_id'], doc={
                             'rule_library': 'SQLI'
                         })
-                xsss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_library': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
+                xsss = response_elasticsearch.search(index='analyzer-xsss', query={'term': {'rule_library.keyword': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
                 xss_results = xsss.raw['hits']['hits']
                 if xss_results.__len__() > 0:
                     for xss_result in xss_results:
                         response_elasticsearch.update(index='analyzer-xsss', id=xss_result['_id'], doc={
                             'rule_library': 'XSS'
                         })
-                fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'rule_library': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
+                fus = response_elasticsearch.search(index='analyzer-fus', query={'term': {'rule_library.keyword': rule_library.raw['_source']['rule_type']}}, size=ES_MAX_RESULT)
                 fu_results = fus.raw['hits']['hits']
                 if fu_results.__len__() > 0:
                     for fu_result in fu_results:

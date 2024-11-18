@@ -1,5 +1,13 @@
+from datetime import datetime
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from json import dumps, loads
 import re
+import smtplib
 import requests
+from .storage import response_elasticsearch, ES_MAX_RESULT
 
 
 def get_value_from_json(data, path: str):
@@ -88,29 +96,30 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
                 return False
             final_body = replace_variables(user_input=str(body), variables=virtual_variable_list)
         try:
-            timeout = (2, 6)
+            timeout = (action_configuration.get('connection_timeout'), action_configuration.get('data_read_timeout'))
+            headers = {"Content-Type": "application/json"}
             if str(method).upper() == 'GET':
-                response = requests.get(url=url, headers={"Content-Type": "application/json"}, json={'message': 'GET method can\'t have body'}, timeout=timeout)
+                response = requests.get(url=url, headers=headers, json={'message': 'GET method can\'t have body'}, timeout=timeout)
                 if response.status_code != 200:
                     return False
                 return True
             if str(method).upper() == 'POST':
-                response = requests.post(url=url, headers={"Content-Type": "application/json"}, json=final_body, timeout=timeout)
+                response = requests.post(url=url, headers=headers, json=final_body, timeout=timeout)
                 if response.status_code != 200:
                     return False
                 return True
             if str(method).upper() == 'PUT':
-                response = requests.put(url=url, headers={"Content-Type": "application/json"}, json=final_body, timeout=timeout)
+                response = requests.put(url=url, headers=headers, json=final_body, timeout=timeout)
                 if response.status_code != 200:
                     return False
                 return True
             if str(method).upper() == 'PATCH':
-                response = requests.patch(url=url, headers={"Content-Type": "application/json"}, json=final_body, timeout=timeout)
+                response = requests.patch(url=url, headers=headers, json=final_body, timeout=timeout)
                 if response.status_code != 200:
                     return False
                 return True
             if str(method).upper() == 'DELETE':
-                response = requests.delete(url=url, headers={"Content-Type": "application/json"}, json=final_body)
+                response = requests.delete(url=url, headers=headers, json=final_body)
                 if response.status_code != 200:
                     return False
                 return True
@@ -118,6 +127,96 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
         except:
             return False
     if action_type == 'email':
+        to = action_configuration.get('to')
+        subject = action_configuration.get('subject')
+        type = action_configuration.get('type')
+        body = action_configuration.get('body')
+        smtp = action_configuration.get('smtp')
+        if not all([to, subject, type, smtp]):
+            return False
+        if type not in ['default', 'custom']:
+            return False
+        if type == 'default':
+            final_body = default_body
+        if type == 'custom':
+            if not body or not isinstance(body, dict):
+                return False
+            final_body = replace_variables(user_input=dumps(body, indent=4), variables=virtual_variable_list)
+        if not isinstance(smtp, dict):
+            return False
+        smtp_host = smtp.get('host')
+        smtp_port = smtp.get('port')
+        smtp_username = smtp.get('username')
+        smtp_password = smtp.get('password')
+        if not all([smtp_host, smtp_port, smtp_username, smtp_password]):
+            return False
+        message = MIMEMultipart()
+        message['From'] = smtp_username
+        message['To'] = to
+        message['Subject'] = subject
+        text_body = f'[Warning] Suspicious log detected from Analyzer, result:'
+        message.attach(MIMEText(text_body, 'plain'))
+        json_data = final_body
+        if type == 'default':
+            json_data = dumps(final_body, indent=4)
+        filename = 'result.json'
+        part = MIMEBase('application', 'json')
+        part.set_payload(json_data.encode('utf-8'))
+        encoders.encode_base64(part)
+        part.add_header(
+            'Content-Disposition',
+            f'attachment; filename={filename}',
+        )
+        message.attach(part)
+        try:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            server.starttls()
+            server.login(smtp_username, smtp_password)
+            server.sendmail(smtp_username, to, message.as_string())
+            server.quit()
+        except:
+            return False
         return True
     return False
 
+
+def check_threshold(analyzer: str, rule_name: str, action_name: str, action_configuration: dict, action_timestamp_id: str):
+    advanced = dict(action_configuration.get('advanced'))
+    is_enabled: bool = advanced.get('is_enabled')
+    threshold: int = advanced.get('threshold')
+    time_window_seconds: int = advanced.get('time_window_seconds')
+    if is_enabled is False:
+        return True
+    now = int(datetime.now().timestamp())
+    start_time = now - time_window_seconds
+    action_timestamps = response_elasticsearch.search(index='analyzer-action-timestamps', query={'bool': {
+        'must': [
+            {'term': {
+                'analyzer.keyword': analyzer
+            }},
+            {'term': {
+                'rule_name.keyword': rule_name
+            }},
+            {'term': {
+                'action_name.keyword': action_name
+            }}
+        ]
+    }}, size=ES_MAX_RESULT).raw
+    trigger_timestamps = [
+        action_timestamp['_source']['timestamp'] for action_timestamp in action_timestamps['hits']['hits']
+        if start_time <= action_timestamp['_source']['timestamp'] <= now
+    ]
+    if trigger_timestamps.__len__() == 0:
+        response_elasticsearch.delete_by_query(index='analyzer-action-timestamps', query={
+            'bool': {
+                'must_not': [
+                    {'term': {'_id': action_timestamp_id}},
+                    {'term': {'analyzer.keyword': analyzer}},
+                    {'term': {'rule_name.keyword': rule_name}},
+                    {'term': {'action_name.keyword': action_name}}
+                ]
+            }
+        })
+    if trigger_timestamps.__len__() >= threshold:
+        return True
+    return False

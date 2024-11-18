@@ -76,13 +76,13 @@ class RuleInheritances(Resource):
                 'reason': 'BadRequest: Rule Description is required'
             }, 400
         rules = response_elasticsearch.search(index='analyzer-rules', body={"query": {"match_all": {}}}, size=ES_MAX_RESULT)
-        for rule in rules.raw['hits']['hits']:
-            if rule['_source']['rule_type'] == rule_type:
-                return {
-                'type': 'rules',
-                'data': None,
-                'reason': 'NotAcceptable: Rule Type is exist'
-            }, 406
+        # for rule in rules.raw['hits']['hits']:
+        #     if rule['_source']['rule_type'] == rule_type:
+        #         return {
+        #         'type': 'rules',
+        #         'data': None,
+        #         'reason': 'NotAcceptable: Rule Type is exist'
+        #     }, 406
         rule_holder = []
         if rule_library:
             if isinstance(rule_library, str):

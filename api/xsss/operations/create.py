@@ -91,14 +91,14 @@ class CrossSiteScriptingRuleCreations(Resource):
                 'data': None,
                 'reason': 'NotAcceptable: Regex Matcher cannot be left blank if Rule Library is not used and vice versa'
             }, 406
-        xsss = response_elasticsearch.search(index='analyzer-xsss', query={"match_phrase": {"rule_name": request_body['ruleName']}}, size=ES_MAX_RESULT)
+        xsss = response_elasticsearch.search(index='analyzer-xsss', query={"term": {"rule_name.keyword": request_body['ruleName']}}, size=ES_MAX_RESULT)
         if xsss.raw['hits']['hits'].__len__() > 0:
             return {
                 'type': 'xsss',
                 'data': None,
                 'reason': 'NotAcceptable: Rule Name is already exist'
             }, 406
-        actions = response_elasticsearch.search(index='analyzer-actions', query={"match_phrase": {"action_name": request_body['action']}}, size=ES_MAX_RESULT)
+        actions = response_elasticsearch.search(index='analyzer-actions', query={"term": {"action_name.keyword": request_body['action']}}, size=ES_MAX_RESULT)
         response_elasticsearch.index(index='analyzer-xsss', document={
             'rule_name': request_body['ruleName'],
             'is_enabled': True if request_body['isEnabled'] == 'true' else False,

@@ -104,14 +104,14 @@ class FileUploadRuleCreations(Resource):
                 'data': None,
                 'reason': 'NotAcceptable: Regex Matcher cannot be left blank if Rule Library is not used and vice versa'
             }, 406
-        fus = response_elasticsearch.search(index='analyzer-fus', query={"match_phrase": {"rule_name": request_body['ruleName']}}, size=ES_MAX_RESULT)
+        fus = response_elasticsearch.search(index='analyzer-fus', query={"term": {"rule_name.keyword": request_body['ruleName']}}, size=ES_MAX_RESULT)
         if fus.raw['hits']['hits'].__len__() > 0:
             return {
                 'type': 'fus',
                 'data': None,
                 'reason': 'NotAcceptable: Rule Name is already exist'
             }, 406
-        actions = response_elasticsearch.search(index='analyzer-actions', query={"match_phrase": {"action_name": request_body['action']}}, size=ES_MAX_RESULT)
+        actions = response_elasticsearch.search(index='analyzer-actions', query={"term": {"action_name.keyword": request_body['action']}}, size=ES_MAX_RESULT)
         response_elasticsearch.index(index='analyzer-fus', document={
             'rule_name': request_body['ruleName'],
             'is_enabled': True if request_body['isEnabled'] == 'true' else False,

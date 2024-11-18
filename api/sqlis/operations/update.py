@@ -113,7 +113,7 @@ class SQLInjectionRuleModifications(Resource):
         old_rule_library = sqli.raw['_source']['rule_library']
         old_action_id = sqli.raw['_source']['action_id']
         if old_rule_name != request_body.get('ruleName'):
-            sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'match_phrase': {'rule_name': request_body['ruleName']}}, size=ES_MAX_RESULT)
+            sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'term': {'rule_name.keyword': request_body['ruleName']}}, size=ES_MAX_RESULT)
             if sqlis.raw['hits']['hits'].__len__() > 0:
                 return {
                     'type': 'sqlis',

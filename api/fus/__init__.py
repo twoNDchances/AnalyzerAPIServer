@@ -1,9 +1,10 @@
+from datetime import datetime
 from flask import Blueprint, request
 from json import loads, dumps
 import yara
 from .operations import fus_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
-from ..functions import get_value_from_json, parse_path, is_valid_regex, re, execute_action
+from ..functions import check_threshold, get_value_from_json, parse_path, is_valid_regex, re, execute_action
 
 
 fus_main_blueprint = Blueprint(name='fus_main_blueprint', import_name=__name__)
@@ -20,7 +21,7 @@ def fus_analyzer_page(rule_name: str):
             'data': None,
             'reason': 'InternalServerError: Can\'t connect to Elasticsearch'
         }, 500
-    fu = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'rule_name': rule_name}}, size=ES_MAX_RESULT)
+    fu = response_elasticsearch.search(index='analyzer-fus', query={'term': {'rule_name.keyword': rule_name}}, size=ES_MAX_RESULT)
     fu_result = fu.raw['hits']['hits']
     if fu_result.__len__() == 0:
         return {
@@ -36,16 +37,11 @@ def fus_analyzer_page(rule_name: str):
             'reason': 'Success: This analyzer is disabled'
         }
     analyzer_result = response_elasticsearch.search(index='analyzer-results', query={'bool': {
-        'must': {
-            'match_phrase': {
-                'reference': fu_analyzer['_source']['rule_name']
-            },
-            'match_phrase': {
-                'analyzer': 'FUs'
-            }
-        }
+        'must': [
+            {'term': {'reference.keyword': fu_analyzer['_source']['rule_name']}},
+            {'term': {'analyzer.keyword': 'FUs'}}
+        ]
     }}, size=ES_MAX_RESULT).raw['hits']['hits']
-    print(analyzer_result)
     try:
         loads(request.data)
     except:
@@ -101,7 +97,7 @@ def fus_analyzer_page(rule_name: str):
         else:
             rules.append(re.compile(rf'{regex_matcher}'))
     if rule_library is not None:
-        rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'match_phrase': {'rule_type': rule_library}}, size=ES_MAX_RESULT)
+        rule_libraries = response_elasticsearch.search(index='analyzer-rules', query={'term': {'rule_type.keyword': rule_library}}, size=ES_MAX_RESULT)
         for library in rule_libraries.raw['hits']['hits']:
             if is_valid_regex(pattern=library['_source']['rule_execution']) is False:
                 logs['[Warning]'].append({
@@ -157,7 +153,7 @@ def fus_analyzer_page(rule_name: str):
             except yara.Error as error:
                 logs['[Error]'].append({
                     'Intergrations': {
-                        'message': error,
+                        'message': str(error),
                         'pattern': each_yara,
                     }
                 })
@@ -176,33 +172,41 @@ def fus_analyzer_page(rule_name: str):
                         'data': None,
                         'reason': 'InternalServerError: Action found but can\'t load, abort error'
                     }, 500
-                if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
-                    'id': fu_analyzer['_id'],
-                    'rule_name': fu_analyzer['_source']['rule_name'],
-                    'is_enabled': fu_analyzer['_source']['is_enabled'],
-                    'target_field': fu_analyzer['_source']['target_field'],
-                    'target_value': json_value_str,
-                    'ip_root_cause_field': fu_analyzer['_source']['ip_root_cause_field'],
-                    'ip_root_cause_value': ip_root_cause_field_value,
-                    'regex_matcher': fu_analyzer['_source']['regex_matcher'],
-                    'rule_library': fu_analyzer['_source']['rule_library'],
-                    'yara_rule_intergration': fu_analyzer['_source']['yara_rule_intergration'],
-                    'action': action.raw['_source']['action_name'],
-                    'result': result
-                }, default_body=result) is False:
-                    logs['[Error]'].append({
-                        'Actions': {
-                            'message': 'Action perform fail with some reasons',
-                            'pattern': action.raw['_source']['action_configuration']
-                        }
-                    })
-                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                        'logs': dumps(logs)
-                    })
-                else:
-                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                        'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                    })
+                timestamp = datetime.now().timestamp()
+                action_timestamp = response_elasticsearch.index(index='analyzer-action-timestamps', document={
+                    "analyzer": 'FUs',
+                    "rule_name": rule_name,
+                    "action_name": action.raw['_source']['action_name'],
+                    "timestamp": int(timestamp)
+                })
+                if check_threshold(analyzer='FUs', rule_name=rule_name, action_name=action.raw['_source']['action_name'], action_configuration=loads(action.raw['_source']['action_configuration']), action_timestamp_id=action_timestamp['_id']) is True:
+                    if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
+                        'id': fu_analyzer['_id'],
+                        'rule_name': fu_analyzer['_source']['rule_name'],
+                        'is_enabled': fu_analyzer['_source']['is_enabled'],
+                        'target_field': fu_analyzer['_source']['target_field'],
+                        'target_value': json_value_str,
+                        'ip_root_cause_field': fu_analyzer['_source']['ip_root_cause_field'],
+                        'ip_root_cause_value': ip_root_cause_field_value,
+                        'regex_matcher': fu_analyzer['_source']['regex_matcher'],
+                        'rule_library': fu_analyzer['_source']['rule_library'],
+                        'yara_rule_intergration': fu_analyzer['_source']['yara_rule_intergration'],
+                        'action': action.raw['_source']['action_name'],
+                        'result': result
+                    }, default_body=result) is False:
+                        logs['[Error]'].append({
+                            'Actions': {
+                                'message': 'Action perform fail with some reasons',
+                                'pattern': action.raw['_source']['action_configuration']
+                            }
+                        })
+                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                            'logs': dumps(logs)
+                        })
+                    else:
+                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                            'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
+                        })
             return {
                 'type': 'fu_analyzer',
                 'data': result,

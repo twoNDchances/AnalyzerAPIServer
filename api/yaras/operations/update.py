@@ -12,7 +12,7 @@ class YARARuleModifications(Resource):
                 'data': None,
                 'reason': 'InternalServerError: Can\'t connect to Elasticsearch'
             }, 500
-        fus = response_elasticsearch.search(index='analyzer-fus', query={'match_phrase': {'yara_rule_intergration': True}}, size=ES_MAX_RESULT)
+        fus = response_elasticsearch.search(index='analyzer-fus', query={'term': {'yara_rule_intergration.keyword': True}}, size=ES_MAX_RESULT)
         return {
             'type': 'fus',
             'data': [fu['_source']['rule_name'] for fu in fus.raw['hits']['hits']],

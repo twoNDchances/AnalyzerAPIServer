@@ -1,8 +1,9 @@
+from datetime import datetime
 from flask import Blueprint, request
 from json import loads, dumps
 from .operations import xss_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
-from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action
+from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action, check_threshold
 
 
 xss_main_blueprint = Blueprint(name='xss_main_blueprint', import_name=__name__)
@@ -20,7 +21,7 @@ def xss_analyzer_endpoint(rule_name: str):
             'data': None,
             'reason': 'InternalServerError: Can\'t connect to Elasticsearch'
         }, 500
-    xss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_name': rule_name}}, size=ES_MAX_RESULT)
+    xss = response_elasticsearch.search(index='analyzer-xsss', query={'term': {'rule_name.keyword': rule_name}}, size=ES_MAX_RESULT)
     xss_result = xss.raw['hits']['hits']
     if xss_result.__len__() != 1:
         return {
@@ -36,14 +37,14 @@ def xss_analyzer_endpoint(rule_name: str):
             'reason': 'Success: This analyzer is disabled'
         }
     analyzer_result = response_elasticsearch.search(index='analyzer-results', query={'bool': {
-        'must': {
-            'match_phrase': {
-                'reference': xss_analyzer['_source']['rule_name']
-            },
-            'match_phrase': {
-                'analyzer': 'XSSs'
-            }
-        }
+        'must': [
+            {'term': {
+                'reference.keyword': xss_analyzer['_source']['rule_name']
+            }},
+            {'term': {
+                'analyzer.keyword': 'XSSs'
+            }}
+        ]
     }}, size=ES_MAX_RESULT).raw['hits']['hits']
     try:
         loads(request.data)
@@ -141,32 +142,46 @@ def xss_analyzer_endpoint(rule_name: str):
                             'data': None,
                             'reason': 'InternalServerError: Action found but can\'t load, abort error'
                         }, 500
-                    if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
-                        'id': xss_analyzer['_id'],
-                        'rule_name': xss_analyzer['_source']['rule_name'],
-                        'is_enabled': xss_analyzer['_source']['is_enabled'],
-                        'target_field': xss_analyzer['_source']['target_field'],
-                        'target_value': all_fields,
-                        'ip_root_cause_field': xss_analyzer['_source']['ip_root_cause_field'],
-                        'ip_root_cause_value': ip_root_cause_field_value,
-                        'regex_matcher': xss_analyzer['_source']['regex_matcher'],
-                        'rule_library': xss_analyzer['_source']['rule_library'],
-                        'action': action.raw['_source']['action_name'],
-                        'result': result
-                    }, default_body=result) is False:
-                        logs['[Error]'].append({
-                            'Actions': {
-                                'message': 'Action perform fail with some reasons',
-                                'pattern': action['_source']['action_configuration']
-                            }
-                        })
-                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                            'logs': dumps(logs)
-                        })
-                    else:
-                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                            'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                        })
+                    timestamp = datetime.now().timestamp()
+                    action_timestamp = response_elasticsearch.index(index='analyzer-action-timestamps', document={
+                        "analyzer": 'XSSs',
+                        "rule_name": rule_name,
+                        "action_name": action.raw['_source']['action_name'],
+                        "timestamp": int(timestamp)
+                    })
+                    if check_threshold(
+                        analyzer='XSSs', 
+                        rule_name=rule_name, 
+                        action_name=action.raw['_source']['action_name'], 
+                        action_configuration=loads(action.raw['_source']['action_configuration']), 
+                        action_timestamp_id=action_timestamp['_id']
+                    ) is True:
+                        if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
+                            'id': xss_analyzer['_id'],
+                            'rule_name': xss_analyzer['_source']['rule_name'],
+                            'is_enabled': xss_analyzer['_source']['is_enabled'],
+                            'target_field': xss_analyzer['_source']['target_field'],
+                            'target_value': all_fields,
+                            'ip_root_cause_field': xss_analyzer['_source']['ip_root_cause_field'],
+                            'ip_root_cause_value': ip_root_cause_field_value,
+                            'regex_matcher': xss_analyzer['_source']['regex_matcher'],
+                            'rule_library': xss_analyzer['_source']['rule_library'],
+                            'action': action.raw['_source']['action_name'],
+                            'result': result
+                        }, default_body=result) is False:
+                            logs['[Error]'].append({
+                                'Actions': {
+                                    'message': 'Action perform fail with some reasons',
+                                    'pattern': action['_source']['action_configuration']
+                                }
+                            })
+                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                'logs': dumps(logs)
+                            })
+                        else:
+                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
+                            })
                 return {
                     'type': 'xss_analyzer',
                     'data': result,
@@ -213,32 +228,40 @@ def xss_analyzer_endpoint(rule_name: str):
                                 'data': None,
                                 'reason': 'InternalServerError: Action found but can\'t load, abort error'
                             }, 500
-                        if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
-                            'id': xss_analyzer['_id'],
-                            'rule_name': xss_analyzer['_source']['rule_name'],
-                            'is_enabled': xss_analyzer['_source']['is_enabled'],
-                            'target_field': xss_analyzer['_source']['target_field'],
-                            'target_value': json_value_str,
-                            'ip_root_cause_field': xss_analyzer['_source']['ip_root_cause_field'],
-                            'ip_root_cause_value': ip_root_cause_field_value,
-                            'regex_matcher': xss_analyzer['_source']['regex_matcher'],
-                            'rule_library': xss_analyzer['_source']['rule_library'],
-                            'action': action.raw['_source']['action_name'],
-                            'result': result
-                        }, default_body=result) is False:
-                            logs['[Error]'].append({
-                                'Actions': {
-                                    'message': 'Action perform fail with some reasons',
-                                    'pattern': action.raw['_source']['action_configuration']
-                                }
-                            })
-                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                'logs': dumps(logs)
-                            })
-                        else:
-                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                            })
+                        timestamp = datetime.now().timestamp()
+                        action_timestamp = response_elasticsearch.index(index='analyzer-action-timestamps', document={
+                            "analyzer": 'XSSs',
+                            "rule_name": rule_name,
+                            "action_name": action.raw['_source']['action_name'],
+                            "timestamp": int(timestamp)
+                        })
+                        if check_threshold(analyzer='XSSs', rule_name=rule_name, action_name=action.raw['_source']['action_name'], action_configuration=loads(action.raw['_source']['action_configuration']), action_timestamp_id=action_timestamp['_id']) is True:
+                            if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
+                                'id': xss_analyzer['_id'],
+                                'rule_name': xss_analyzer['_source']['rule_name'],
+                                'is_enabled': xss_analyzer['_source']['is_enabled'],
+                                'target_field': xss_analyzer['_source']['target_field'],
+                                'target_value': json_value_str,
+                                'ip_root_cause_field': xss_analyzer['_source']['ip_root_cause_field'],
+                                'ip_root_cause_value': ip_root_cause_field_value,
+                                'regex_matcher': xss_analyzer['_source']['regex_matcher'],
+                                'rule_library': xss_analyzer['_source']['rule_library'],
+                                'action': action.raw['_source']['action_name'],
+                                'result': result
+                            }, default_body=result) is False:
+                                logs['[Error]'].append({
+                                    'Actions': {
+                                        'message': 'Action perform fail with some reasons',
+                                        'pattern': action.raw['_source']['action_configuration']
+                                    }
+                                })
+                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                    'logs': dumps(logs)
+                                })
+                            else:
+                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                    'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
+                                })
                     return {
                         'type': 'xss_analyzer',
                         'data': result,
@@ -292,32 +315,40 @@ def xss_analyzer_endpoint(rule_name: str):
                                     'data': None,
                                     'reason': 'InternalServerError: Action found but can\'t load, abort error'
                                 }, 500
-                            if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
-                                'id': xss_analyzer['_id'],
-                                'rule_name': xss_analyzer['_source']['rule_name'],
-                                'is_enabled': xss_analyzer['_source']['is_enabled'],
-                                'target_field': xss_analyzer['_source']['target_field'],
-                                'target_value': target_field_value,
-                                'ip_root_cause_field': xss_analyzer['_source']['ip_root_cause_field'],
-                                'ip_root_cause_value': ip_root_cause_field_value,
-                                'regex_matcher': xss_analyzer['_source']['regex_matcher'],
-                                'rule_library': xss_analyzer['_source']['rule_library'],
-                                'action': action.raw['_source']['action_name'],
-                                'result': result
-                            }, default_body=result) is False:
-                                logs['[Error]'].append({
-                                    'Actions': {
-                                        'message': 'Action perform fail with some reasons',
-                                        'pattern': action[3]
-                                    }
-                                })
-                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                    'logs': dumps(logs)
-                                })
-                            else:
-                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                    'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                                })
+                            timestamp = datetime.now().timestamp()
+                            action_timestamp= response_elasticsearch.index(index='analyzer-action-timestamps', document={
+                                "analyzer": 'XSSs',
+                                "rule_name": rule_name,
+                                "action_name": action.raw['_source']['action_name'],
+                                "timestamp": int(timestamp)
+                            })
+                            if check_threshold(analyzer='XSSs', rule_name=rule_name, action_name=action.raw['_source']['action_name'], action_configuration=loads(action.raw['_source']['action_configuration']), action_timestamp_id=action_timestamp['_id']) is True:
+                                if execute_action(action_type=action.raw['_source']['action_type'], action_configuration=loads(action.raw['_source']['action_configuration']), virtual_variable_list={
+                                    'id': xss_analyzer['_id'],
+                                    'rule_name': xss_analyzer['_source']['rule_name'],
+                                    'is_enabled': xss_analyzer['_source']['is_enabled'],
+                                    'target_field': xss_analyzer['_source']['target_field'],
+                                    'target_value': target_field_value,
+                                    'ip_root_cause_field': xss_analyzer['_source']['ip_root_cause_field'],
+                                    'ip_root_cause_value': ip_root_cause_field_value,
+                                    'regex_matcher': xss_analyzer['_source']['regex_matcher'],
+                                    'rule_library': xss_analyzer['_source']['rule_library'],
+                                    'action': action.raw['_source']['action_name'],
+                                    'result': result
+                                }, default_body=result) is False:
+                                    logs['[Error]'].append({
+                                        'Actions': {
+                                            'message': 'Action perform fail with some reasons',
+                                            'pattern': action[3]
+                                        }
+                                    })
+                                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                        'logs': dumps(logs)
+                                    })
+                                else:
+                                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
+                                        'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
+                                    })
                         return {
                             'type': 'xss_analyzer',
                             'data': result,

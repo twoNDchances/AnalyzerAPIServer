@@ -113,7 +113,7 @@ class CrossSiteScriptingRuleModifications(Resource):
         old_rule_library = xss['_source']['rule_library']
         old_action_id = xss['_source']['action_id']
         if old_rule_name != request_body.get('ruleName'):
-            xsss = response_elasticsearch.search(index='analyzer-xsss', query={'match_phrase': {'rule_name': request_body['ruleName']}})
+            xsss = response_elasticsearch.search(index='analyzer-xsss', query={'term': {'rule_name.keyword': request_body['ruleName']}})
             if xsss.raw['hits']['hits'].__len__() > 0:
                 return {
                     'type': 'xsss',
@@ -177,7 +177,7 @@ class CrossSiteScriptingRuleModifications(Resource):
         }
     
     def get_id_by_action_name(self, action_name: str):
-        action = response_elasticsearch.search(index='analyzer-actions', query={'match_phrase': {'action_name': action_name}}, size=ES_MAX_RESULT)
+        action = response_elasticsearch.search(index='analyzer-actions', query={'term': {'action_name.keyword': action_name}}, size=ES_MAX_RESULT)
         return action.raw['hits']['hits'][0]['_id']
     
     def get_action_type_by_id(self, id: str):
