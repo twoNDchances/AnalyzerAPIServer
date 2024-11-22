@@ -76,7 +76,7 @@ def replace_variables(user_input, variables):
     return result
 
 
-def execute_action(action_type: str, action_configuration: dict, virtual_variable_list: dict, default_body: dict):
+def execute_action(action_type: str, action_configuration: dict, virtual_variable_list: dict, default_body: dict, ip_root_cause: str):
     if action_type == 'webhook':
         url = action_configuration.get('url')
         method = action_configuration.get('method')
@@ -94,7 +94,11 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
         if type == 'custom':
             if not body or not isinstance(body, dict):
                 return False
-            final_body = replace_variables(user_input=str(body), variables=virtual_variable_list)
+            try:
+                final_body = loads(replace_variables(user_input=dumps(body), variables=virtual_variable_list))
+            except:
+                final_body = {'payload': replace_variables(user_input=dumps(body), variables=virtual_variable_list)}
+            final_body['ip_root_cause'] = ip_root_cause
         try:
             timeout = (action_configuration.get('connection_timeout'), action_configuration.get('data_read_timeout'))
             headers = {"Content-Type": "application/json"}

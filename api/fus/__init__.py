@@ -193,7 +193,7 @@ def fus_analyzer_page(rule_name: str):
                         'yara_rule_intergration': fu_analyzer['_source']['yara_rule_intergration'],
                         'action': action.raw['_source']['action_name'],
                         'result': result
-                    }, default_body=result) is False:
+                    }, default_body=result, ip_root_cause=ip_root_cause_field_value) is False:
                         logs['[Error]'].append({
                             'Actions': {
                                 'message': 'Action perform fail with some reasons',
