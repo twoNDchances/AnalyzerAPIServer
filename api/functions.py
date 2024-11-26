@@ -71,14 +71,23 @@ def traverse_json(data, parent_key='') -> list[dict]:
 def replace_variables(user_input, variables):
     def replacer(match):
         var_name = match.group(1)
-        return str(variables.get(var_name, f"${{{var_name}}}")) 
+        return variables.get(var_name, f"${{{var_name}}}")
     if isinstance(user_input, str):
-        return re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", replacer, user_input)    
+        return re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", lambda m: str(replacer(m)), user_input)
     elif isinstance(user_input, dict):
         result_dict = {}
         for key, value in user_input.items():
             if isinstance(value, str):
-                result_dict[key] = re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", replacer, value)
+                match = re.fullmatch(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", value)
+                if match:
+                    var_name = match.group(1)
+                    var_value = variables.get(var_name, f"${{{var_name}}}")
+                    if isinstance(var_value, dict):
+                        result_dict[key] = var_value
+                    else:
+                        result_dict[key] = str(var_value)
+                else:
+                    result_dict[key] = re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", lambda m: str(replacer(m)), value)
             elif isinstance(value, dict):
                 result_dict[key] = replace_variables(value, variables)
             else:
