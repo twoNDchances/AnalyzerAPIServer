@@ -95,8 +95,8 @@ def check_elasticsearch():
         es.index(index='analyzer-sqlis', document={
             'rule_name': 'default-sqli-analyzer',
             'is_enabled': True,
-            'target_field': 'request.body',
-            'ip_root_cause_field': 'client.ip',
+            'target_field': 'http.request.body.content',
+            'ip_root_cause_field': 'http.request.headers.x-client-source-ip',
             'regex_matcher': '',
             'rule_library': 'SQLI',
             'action_id': action_id['_id'],
@@ -111,8 +111,8 @@ def check_elasticsearch():
         es.index(index='analyzer-xsss', document={
             'rule_name': 'default-xss-analyzer',
             'is_enabled': True,
-            'target_field': 'request.body',
-            'ip_root_cause_field': 'client.ip',
+            'target_field': 'http.request.body.content',
+            'ip_root_cause_field': 'http.request.headers.x-client-source-ip',
             'regex_matcher': '',
             'rule_library': 'XSS',
             'action_id': action_id['_id'],
@@ -127,8 +127,8 @@ def check_elasticsearch():
         es.index(index='analyzer-fus', document={
             'rule_name': 'default-fu-analyzer',
             'is_enabled': True,
-            'target_field': 'request.body',
-            'ip_root_cause_field': 'client.ip',
+            'target_field': 'request_body',
+            'ip_root_cause_field': 'ip_address',
             'regex_matcher': '',
             'rule_library': 'FU',
             'yara_rule_intergration': True,
