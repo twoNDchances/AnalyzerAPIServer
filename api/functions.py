@@ -71,9 +71,21 @@ def traverse_json(data, parent_key='') -> list[dict]:
 def replace_variables(user_input, variables):
     def replacer(match):
         var_name = match.group(1)
-        return str(variables.get(var_name, f"${{{var_name}}}"))
-    result = re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", replacer, user_input)
-    return result
+        return str(variables.get(var_name, f"${{{var_name}}}")) 
+    if isinstance(user_input, str):
+        return re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", replacer, user_input)    
+    elif isinstance(user_input, dict):
+        result_dict = {}
+        for key, value in user_input.items():
+            if isinstance(value, str):
+                result_dict[key] = re.sub(r"\$([a-zA-Z_][a-zA-Z0-9_]*)", replacer, value)
+            elif isinstance(value, dict):
+                result_dict[key] = replace_variables(value, variables)
+            else:
+                result_dict[key] = value
+        return result_dict
+    else:
+        return user_input
 
 
 def execute_action(action_type: str, action_configuration: dict, virtual_variable_list: dict, default_body: dict, ip_root_cause: str):
@@ -94,10 +106,11 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
         if type == 'custom':
             if not body or not isinstance(body, dict):
                 return False
-            try:
-                final_body = loads(replace_variables(user_input=dumps(body), variables=virtual_variable_list))
-            except:
-                final_body = {'payload': replace_variables(user_input=dumps(body), variables=virtual_variable_list)}
+            # try:
+            #     final_body = loads(replace_variables(user_input=dumps(body), variables=virtual_variable_list))
+            # except:
+            #     final_body = {'payload': replace_variables(user_input=dumps(body), variables=virtual_variable_list)}
+            final_body = {'payload': replace_variables(user_input=body, variables=virtual_variable_list)}
             final_body['ip_root_cause'] = ip_root_cause
         try:
             timeout = (action_configuration.get('connection_timeout'), action_configuration.get('data_read_timeout'))
@@ -145,7 +158,7 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
         if type == 'custom':
             if not body or not isinstance(body, dict):
                 return False
-            final_body = replace_variables(user_input=dumps(body, indent=4), variables=virtual_variable_list)
+            final_body = replace_variables(user_input=body, variables=virtual_variable_list)
         if not isinstance(smtp, dict):
             return False
         smtp_host = smtp.get('host')
@@ -160,12 +173,10 @@ def execute_action(action_type: str, action_configuration: dict, virtual_variabl
         message['Subject'] = subject
         text_body = f'[Warning] Suspicious log detected from Analyzer, result:'
         message.attach(MIMEText(text_body, 'plain'))
-        json_data = final_body
-        if type == 'default':
-            json_data = dumps(final_body, indent=4)
+        json_data = dumps(final_body, indent=4).encode('utf-8')
         filename = 'result.json'
         part = MIMEBase('application', 'json')
-        part.set_payload(json_data.encode('utf-8'))
+        part.set_payload(json_data)
         encoders.encode_base64(part)
         part.add_header(
             'Content-Disposition',
