@@ -132,7 +132,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                 response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                     'match_count': analyzer_result[0]['_source']['match_count'] + 1,
                     'logs': dumps(logs)
-                })
+                }, retry_on_conflict=ES_MAX_RESULT)
                 if action_id is not None:
                     try:
                         action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -171,11 +171,11 @@ def sqli_analyzer_endpoint(rule_name: str):
                             })
                             response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                                 'logs': dumps(logs)
-                            })
+                            }, retry_on_conflict=ES_MAX_RESULT)
                         else:
                             response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                                 'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                            })
+                            }, retry_on_conflict=ES_MAX_RESULT)
                 return {
                     'type': 'sqli_analyzer',
                     'data': result,
@@ -212,7 +212,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                     response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                         'match_count': analyzer_result[0]['_source']['match_count'] + 1,
                         'logs': dumps(logs)
-                    })
+                    }, retry_on_conflict=ES_MAX_RESULT)
                     if action_id is not None:
                         try:
                             action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -251,11 +251,11 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 })
                                 response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                                     'logs': dumps(logs)
-                                })
+                                }, retry_on_conflict=ES_MAX_RESULT)
                             else:
                                 response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                                     'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                                })
+                                }, retry_on_conflict=ES_MAX_RESULT)
                     return {
                         'type': 'sqli_analyzer',
                         'data': result,
@@ -273,7 +273,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                 })
                 response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                     'logs': dumps(logs)
-                })
+                }, retry_on_conflict=ES_MAX_RESULT)
         elif str(type(target_field_path)) == "<class 'list'>":
             target_field_value = []
             for path in target_field_path:
@@ -299,7 +299,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                         response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                             'match_count': analyzer_result[0]['_source']['match_count'] + 1,
                             'logs': dumps(logs)
-                        })
+                        }, retry_on_conflict=ES_MAX_RESULT)
                         if action_id is not None:
                             try:
                                 action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -338,11 +338,11 @@ def sqli_analyzer_endpoint(rule_name: str):
                                     })
                                     response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                                         'logs': dumps(logs)
-                                    })
+                                    }, retry_on_conflict=ES_MAX_RESULT)
                                 else:
                                     response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                                         'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                                    })
+                                    }, retry_on_conflict=ES_MAX_RESULT)
                         return {
                             'type': 'sqli_analyzer',
                             'data': result,
@@ -357,7 +357,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                     })
                     response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                         'logs': dumps(logs)
-                    })
+                    }, retry_on_conflict=ES_MAX_RESULT)
             return {
                 'type': 'sqli_analyzer',
                 'data': None,
@@ -372,7 +372,7 @@ def sqli_analyzer_endpoint(rule_name: str):
             })
             response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                 'logs': dumps(logs)
-            })
+            }, retry_on_conflict=ES_MAX_RESULT)
     return {
         'type': 'sqli_analyzer',
         'data': None,

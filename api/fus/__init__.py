@@ -124,7 +124,7 @@ def fus_analyzer_page(rule_name: str):
         })
         response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
             'logs': dumps(logs)
-        })
+        }, retry_on_conflict=ES_MAX_RESULT)
     else:
         json_value_str = str(json_value)
         for rule in rules:
@@ -162,7 +162,7 @@ def fus_analyzer_page(rule_name: str):
             response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                 'match_count': analyzer_result[0]['_source']['match_count'] + 1,
                 'logs': dumps(logs)
-            })
+            }, retry_on_conflict=ES_MAX_RESULT)
             if action_id is not None:
                 try:
                     action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -202,11 +202,11 @@ def fus_analyzer_page(rule_name: str):
                         })
                         response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                             'logs': dumps(logs)
-                        })
+                        }, retry_on_conflict=ES_MAX_RESULT)
                     else:
                         response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
                             'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                        })
+                        }, retry_on_conflict=ES_MAX_RESULT)
             return {
                 'type': 'fu_analyzer',
                 'data': result,
@@ -214,7 +214,7 @@ def fus_analyzer_page(rule_name: str):
             }
         response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
             'logs': dumps(logs)
-        })
+        }, retry_on_conflict=ES_MAX_RESULT)
         return {
             'type': 'fu_analyzer',
             'data': None,
@@ -222,7 +222,7 @@ def fus_analyzer_page(rule_name: str):
         }
     response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
         'logs': dumps(logs)
-    })
+    }, retry_on_conflict=ES_MAX_RESULT)
     return {
         'type': 'fu_analyzer',
         'data': None,
