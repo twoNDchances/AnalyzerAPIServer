@@ -48,6 +48,84 @@ def load_rule_library():
         response_elasticsearch.indices.create(index="analyzer-fus", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-rules", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-yaras", body=index_settings)
+        response_elasticsearch.index(index='analyzer-yaras', document={
+            'yara_rule': 'rule Detect_PHP_Webshell { meta: author = "Analyzer" description = "Detect PHP webshell" version = "1.0" date = "2024-11-18" reference = "Custom Rule for detecting malicious PHP scripts" strings: $php_start = "<?php" $eval = "eval(" $base64_decode = "base64_decode(" $exec = "exec(" $system = "system(" $shell_exec = "shell_exec(" $passthru = "passthru(" $cmd_pattern = /cmd=[a-zA-Z0-9_\\-]+/ $suspicious_code = /[A-Za-z0-9+\\/=]{50,}/ condition: any of them }',
+            'yara_description': 'Detect PHP webshell',
+            'yara_rule_original': 
+'''
+rule Detect_PHP_Webshell
+{
+    meta:
+        author = "Analyzer"
+        description = "Detect PHP webshell"
+        version = "1.0"
+        date = "2024-11-18"
+        reference = "Custom Rule for detecting malicious PHP scripts"
+    
+    strings:
+        $php_start = "<?php"
+        $eval = "eval("
+        $base64_decode = "base64_decode("
+        $exec = "exec("
+        $system = "system("
+        $shell_exec = "shell_exec("
+        $passthru = "passthru("
+        $cmd_pattern = /cmd=[a-zA-Z0-9_\\-]+/
+        $suspicious_code = /[A-Za-z0-9+\\/=]{50,}/
+
+    condition:
+        any of them
+}
+''',
+            'yara_description_original': 'Detect PHP webshell'
+        })
+        response_elasticsearch.index(index='analyzer-yaras', document={
+            'yara_rule': 'rule php_anuna { meta: author = "Vlad https://github.com/vlad-s" date = "2016/07/18" description = "Catches a PHP Trojan" strings: $a = /<\\?php \\$[a-z]+ = \'/ $b = /\\$[a-z]+=explode\\(chr\\(\\([0-9]+[-+][0-9]+\\)\\)/ $c = /\\$[a-z]+=\\([0-9]+[-+][0-9]+\\)/ $d = /if \\(!function_exists\\(\'[a-z]+\'\\)\\)/ condition: all of them }',
+            'yara_description': 'Detect PHP webshell',
+            'yara_rule_original':
+'''
+rule php_anuna
+{
+    meta:
+        author      = "Vlad https://github.com/vlad-s"
+        date        = "2016/07/18"
+        description = "Catches a PHP Trojan"
+    strings:
+        $a = /<\\?php \\$[a-z]+ = '/
+        $b = /\\$[a-z]+=explode\\(chr\\(\\([0-9]+[-+][0-9]+\\)\\)/
+        $c = /\\$[a-z]+=\\([0-9]+[-+][0-9]+\\)/
+        $d = /if \\(!function_exists\\('[a-z]+'\\)\\)/
+    condition:
+        all of them
+}
+''',
+            'yara_description_original': 'Detect PHP webshell'
+        })
+        response_elasticsearch.index(index='analyzer-yaras', document={
+            'yara_rule': 'rule php_in_image { meta: author = "Vlad https://github.com/vlad-s" date = "2016/07/18" description = "Finds image files w/ PHP code in images" strings: $gif = /^GIF8[79]a/ $jfif = { ff d8 ff e? 00 10 4a 46 49 46 } $png = { 89 50 4e 47 0d 0a 1a 0a } $php_tag = "<?php" condition: (($gif at 0) or ($jfif at 0) or ($png at 0)) and $php_tag }',
+            'yara_description': 'Detect PHP webshell',
+            'yara_rule_original':
+'''
+rule php_in_image
+{
+    meta:
+        author      = "Vlad https://github.com/vlad-s"
+        date        = "2016/07/18"
+        description = "Finds image files w/ PHP code in images"
+    strings:
+        $gif = /^GIF8[79]a/
+        $jfif = { ff d8 ff e? 00 10 4a 46 49 46 }
+        $png = { 89 50 4e 47 0d 0a 1a 0a }
+        $php_tag = "<?php"
+    condition:
+        (($gif at 0) or
+        ($jfif at 0) or
+        ($png at 0)) and
+        $php_tag
+}
+''',
+            'yara_description_original': 'Detect PHP webshell'
+        })
         sqli_rules = [
             {
                 'rule_type': 'SQLI',
