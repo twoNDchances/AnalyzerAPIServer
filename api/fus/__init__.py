@@ -4,7 +4,7 @@ from json import loads, dumps
 import yara
 from .operations import fus_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
-from ..functions import check_threshold, get_value_from_json, parse_path, is_valid_regex, re, execute_action
+from ..functions import check_threshold, get_value_from_json, parse_path, is_valid_regex, re, execute_action, decode_hex_escaped_string
 
 
 fus_main_blueprint = Blueprint(name='fus_main_blueprint', import_name=__name__)
@@ -128,7 +128,8 @@ def fus_analyzer_page(rule_name: str):
     else:
         json_value_str = str(json_value)
         for rule in rules:
-            if rule.search(json_value_str):
+            escape_hex_value = decode_hex_escaped_string(input_string=json_value_str)
+            if rule.search(escape_hex_value):
                 result['regex'] = {
                     '_message_': f'Detected from {rule_name} analyzer',
                     'field_name': target_field,

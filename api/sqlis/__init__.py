@@ -3,7 +3,7 @@ from json import loads, dumps
 from datetime import datetime
 from .operations import sqli_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
-from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action, check_threshold
+from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action, check_threshold, decode_hex_escaped_string
 
 
 sqli_main_blueprint = Blueprint(name='sqli_main_blueprint', import_name=__name__)
@@ -113,8 +113,9 @@ def sqli_analyzer_endpoint(rule_name: str):
             flag = False
             for field in all_fields:
                 for key, value in field.items():
+                    value = decode_hex_escaped_string(input_string=str(value))
                     for rule in rules:
-                        if rule.search(str(value)):
+                        if rule.search(value):
                             result = {
                                 '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': key,
@@ -197,7 +198,7 @@ def sqli_analyzer_endpoint(rule_name: str):
         if str(type(target_field_path)) == "<class 'str'>":
             json_value = get_value_from_json(data=json, path=target_field)
             if json_value is not None:
-                json_value_str = str(json_value)
+                json_value_str = decode_hex_escaped_string(input_string=str(json_value))
                 for rule in rules:
                     if rule.search(json_value_str):
                         result = {
@@ -284,7 +285,7 @@ def sqli_analyzer_endpoint(rule_name: str):
             for path in target_field_path:
                 json_value = get_value_from_json(data=json, path=path)
                 if json_value is not None:
-                    json_value_str = str(json_value)
+                    json_value_str = decode_hex_escaped_string(input_string=str(json_value))
                     for rule in rules:
                         if rule.search(json_value_str):
                             result = {

@@ -244,3 +244,10 @@ def check_threshold(analyzer: str, rule_name: str, action_name: str, action_conf
     if trigger_timestamps.__len__() >= threshold:
         return True
     return False
+
+
+def decode_hex_escaped_string(input_string):
+    def replace_match(match):
+        return bytes.fromhex(match.group(1)).decode('latin1')
+    decoded_string = re.sub(r'\\x([0-9A-Fa-f]{2})', replace_match, input_string)
+    return decoded_string

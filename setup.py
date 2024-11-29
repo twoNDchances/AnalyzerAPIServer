@@ -95,8 +95,8 @@ def check_elasticsearch():
         es.index(index='analyzer-sqlis', document={
             'rule_name': 'default-sqli-analyzer',
             'is_enabled': True,
-            'target_field': 'http.request.body.content',
-            'ip_root_cause_field': 'http.request.headers.x-client-source-ip',
+            'target_field': 'request_body',
+            'ip_root_cause_field': 'ip_address',
             'regex_matcher': '',
             'rule_library': 'SQLI',
             'action_id': action_id['_id'],
@@ -111,8 +111,8 @@ def check_elasticsearch():
         es.index(index='analyzer-xsss', document={
             'rule_name': 'default-xss-analyzer',
             'is_enabled': True,
-            'target_field': 'http.request.body.content',
-            'ip_root_cause_field': 'http.request.headers.x-client-source-ip',
+            'target_field': 'request_body',
+            'ip_root_cause_field': 'ip_address',
             'regex_matcher': '',
             'rule_library': 'XSS',
             'action_id': action_id['_id'],
@@ -145,7 +145,7 @@ def check_elasticsearch():
         sqli_rules = [
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW)\\b',
+                'rule_execution': '(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW)\\b',
                 'rule_description': 'Common SQL keywords'
             },
             {
@@ -155,22 +155,22 @@ def check_elasticsearch():
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|SLEEP|BENCHMARK|WAITFOR|EXECUTE)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|SLEEP|BENCHMARK|WAITFOR)\\b)',
                 'rule_description': 'Common statement for MySQL'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|SLEEP|BENCHMARK|WAITFOR)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|SLEEP|BENCHMARK|WAITFOR)\\b)',
                 'rule_description': 'Common statement for PostgreSQL'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|SLEEP|DBMS_LOCK.SLEEP)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|SLEEP|DBMS_LOCK.SLEEP)\\b)',
                 'rule_description': 'Common statement for Oracle'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|WAITFOR)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|WAITFOR)\\b)',
                 'rule_description': 'Common statement for SQL Server'
             },
             {
@@ -213,6 +213,21 @@ def check_elasticsearch():
                 'rule_execution': '(?i)\\b\\d+\\s*=\\s*\\d+\\b',
                 'rule_description': 'Detect conditions with tautologies (Example: \'1\'=\'1\')'
             },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\b(.+\\s*R?LIKE\\s*([\'"].*[\'"]|\\((\\w*|.*)\\))|.*(\\s*[\'"]|\\s+\\d+)\\s*R?LIKE\\s+\\d+\\s*)',
+                'rule_description': 'Detect using LIKE condition'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\b(EXEC\\s*\\(\\s*(@\\w+|[\'"].*[\'"])\\s*\\);|EXEC?\\s+\\w+\\s+@\\w+\\s*=\\s*|EXECUTE\\s+\\w+\\s*;|EXECUTE\\s*(\\w+|[\'"].*[\'"]);)',
+                'rule_description': 'Detect using EXEC (or EXECUTE) statment'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\b(INTO?\\s*OUTFILE\\s*[\'"].*[\'"]|COPY\\s*(\\w+|[\'"].*[\'"]|\\(.*\\))\\s*(TO|FROM)\\s+PROGRAM)',
+                'rule_description': 'Detect using SQLi to RCE'
+            }
         ]
         for sqli_rule in sqli_rules:
             es.index(index="analyzer-rules", document=sqli_rule)
@@ -312,7 +327,7 @@ def check_elasticsearch():
         print('[Info] Created "analyzer-yaras"')
         print('[Info] Preparing to create default rule of YARAs...')
         es.index(index='analyzer-yaras', document={
-            'yara_rule': 'rule Detect_PHP_Webshell { meta: author = "Analyzer" description = "Detect PHP webshell" version = "1.0" date = "2024-11-18" reference = "Custom Rule for detecting malicious PHP scripts" strings: $php_start = "<?php" $eval = "eval(" $base64_decode = "base64_decode(" $exec = "exec(" $system = "system(" $shell_exec = "shell_exec(" $passthru = "passthru(" $cmd_pattern = /cmd=[a-zA-Z0-9_\-]+/ $suspicious_code = /[A-Za-z0-9+\/=]{50,}/ condition: any of ($eval, $base64_decode, $exec, $system, $shell_exec, $passthru) and #suspicious_code > 0 and $php_start }',
+            'yara_rule': 'rule Detect_PHP_Webshell { meta: author = "Analyzer" description = "Detect PHP webshell" version = "1.0" date = "2024-11-18" reference = "Custom Rule for detecting malicious PHP scripts" strings: $php_start = "<?php" $eval = "eval(" $base64_decode = "base64_decode(" $exec = "exec(" $system = "system(" $shell_exec = "shell_exec(" $passthru = "passthru(" $cmd_pattern = /cmd=[a-zA-Z0-9_\\-]+/ $suspicious_code = /[A-Za-z0-9+\\/=]{50,}/ condition: any of them }',
             'yara_description': 'Detect PHP webshell',
             'yara_rule_original': 
 '''
@@ -333,11 +348,58 @@ rule Detect_PHP_Webshell
         $system = "system("
         $shell_exec = "shell_exec("
         $passthru = "passthru("
-        $cmd_pattern = /cmd=[a-zA-Z0-9_\-]+/
-        $suspicious_code = /[A-Za-z0-9+\/=]{50,}/
+        $cmd_pattern = /cmd=[a-zA-Z0-9_\\-]+/
+        $suspicious_code = /[A-Za-z0-9+\\/=]{50,}/
 
     condition:
-        any of ($eval, $base64_decode, $exec, $system, $shell_exec, $passthru) and #suspicious_code > 0 and $php_start
+        any of them
+}
+''',
+            'yara_description_original': 'Detect PHP webshell'
+        })
+        es.index(index='analyzer-yaras', document={
+            'yara_rule': 'rule php_anuna { meta: author = "Vlad https://github.com/vlad-s" date = "2016/07/18" description = "Catches a PHP Trojan" strings: $a = /<\\?php \\$[a-z]+ = \'/ $b = /\\$[a-z]+=explode\\(chr\\(\\([0-9]+[-+][0-9]+\\)\\)/ $c = /\\$[a-z]+=\\([0-9]+[-+][0-9]+\\)/ $d = /if \\(!function_exists\\(\'[a-z]+\'\\)\\)/ condition: all of them }',
+            'yara_description': 'Detect PHP webshell',
+            'yara_rule_original':
+'''
+rule php_anuna
+{
+    meta:
+        author      = "Vlad https://github.com/vlad-s"
+        date        = "2016/07/18"
+        description = "Catches a PHP Trojan"
+    strings:
+        $a = /<\\?php \\$[a-z]+ = '/
+        $b = /\\$[a-z]+=explode\\(chr\\(\\([0-9]+[-+][0-9]+\\)\\)/
+        $c = /\\$[a-z]+=\\([0-9]+[-+][0-9]+\\)/
+        $d = /if \\(!function_exists\\('[a-z]+'\\)\\)/
+    condition:
+        all of them
+}
+''',
+            'yara_description_original': 'Detect PHP webshell'
+        })
+        es.index(index='analyzer-yaras', document={
+            'yara_rule': 'rule php_in_image { meta: author = "Vlad https://github.com/vlad-s" date = "2016/07/18" description = "Finds image files w/ PHP code in images" strings: $gif = /^GIF8[79]a/ $jfif = { ff d8 ff e? 00 10 4a 46 49 46 } $png = { 89 50 4e 47 0d 0a 1a 0a } $php_tag = "<?php" condition: (($gif at 0) or ($jfif at 0) or ($png at 0)) and $php_tag }',
+            'yara_description': 'Detect PHP webshell',
+            'yara_rule_original':
+'''
+rule php_in_image
+{
+    meta:
+        author      = "Vlad https://github.com/vlad-s"
+        date        = "2016/07/18"
+        description = "Finds image files w/ PHP code in images"
+    strings:
+        $gif = /^GIF8[79]a/
+        $jfif = { ff d8 ff e? 00 10 4a 46 49 46 }
+        $png = { 89 50 4e 47 0d 0a 1a 0a }
+        $php_tag = "<?php"
+    condition:
+        (($gif at 0) or
+        ($jfif at 0) or
+        ($png at 0)) and
+        $php_tag
 }
 ''',
             'yara_description_original': 'Detect PHP webshell'

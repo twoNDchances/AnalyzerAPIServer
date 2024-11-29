@@ -51,7 +51,7 @@ def load_rule_library():
         sqli_rules = [
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW)\\b',
+                'rule_execution': '(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW)\\b',
                 'rule_description': 'Common SQL keywords'
             },
             {
@@ -61,22 +61,22 @@ def load_rule_library():
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|SLEEP|BENCHMARK|WAITFOR|EXECUTE)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|SLEEP|BENCHMARK|WAITFOR)\\b)',
                 'rule_description': 'Common statement for MySQL'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|SLEEP|BENCHMARK|WAITFOR)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|SLEEP|BENCHMARK|WAITFOR)\\b)',
                 'rule_description': 'Common statement for PostgreSQL'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|SLEEP|DBMS_LOCK.SLEEP)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|SLEEP|DBMS_LOCK.SLEEP)\\b)',
                 'rule_description': 'Common statement for Oracle'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|EXEC|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|LIKE|IN|WAITFOR)\\b)',
+                'rule_execution': '(?i)(\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|UNION|GRANT|REVOKE|SHOW|FROM|WHERE|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|IN|WAITFOR)\\b)',
                 'rule_description': 'Common statement for SQL Server'
             },
             {
@@ -119,6 +119,21 @@ def load_rule_library():
                 'rule_execution': '(?i)\\b\\d+\\s*=\\s*\\d+\\b',
                 'rule_description': 'Detect conditions with tautologies (Example: \'1\'=\'1\')'
             },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\b(.+\\s*R?LIKE\\s*([\'"].*[\'"]|\\((\\w*|.*)\\))|.*(\\s*[\'"]|\\s+\\d+)\\s*R?LIKE\\s+\\d+\\s*)',
+                'rule_description': 'Detect using LIKE condition'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\b(EXEC\\s*\\(\\s*(@\\w+|[\'"].*[\'"])\\s*\\);|EXEC?\\s+\\w+\\s+@\\w+\\s*=\\s*|EXECUTE\\s+\\w+\\s*;|EXECUTE\\s*(\\w+|[\'"].*[\'"]);)',
+                'rule_description': 'Detect using EXEC (or EXECUTE) statment'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\b(INTO?\\s*OUTFILE\\s*[\'"].*[\'"]|COPY\\s*(\\w+|[\'"].*[\'"]|\\(.*\\))\\s*(TO|FROM)\\s+PROGRAM)',
+                'rule_description': 'Detect using SQLi to RCE'
+            }
         ]
 
         xss_rules = [
