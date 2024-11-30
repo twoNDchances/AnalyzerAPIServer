@@ -120,7 +120,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': key,
                                 'field_value': value,
-                                'by_rule': str(rule),
+                                'by_rule': rule.pattern,
                                 '_ip_root_cause_': ip_root_cause_field_value
                             }
                             flag = True
@@ -205,7 +205,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                             '_message_': f'Detected from {rule_name} analyzer',
                             'field_name': target_field,
                             'field_value': json_value_str,
-                            'by_rule': str(rule),
+                            'by_rule': rule.pattern,
                             '_ip_root_cause_': ip_root_cause_field_value
                         }
                         break
@@ -292,7 +292,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': path,
                                 'field_value': json_value_str,
-                                'by_rule': str(rule),
+                                'by_rule': rule.pattern,
                                 '_ip_root_cause_': ip_root_cause_field_value
                             }
                             break

@@ -1,8 +1,8 @@
-export ES_HOST="http://192.168.1.7:9200"
+export ES_HOST="http://192.168.1.2:9200"
 export ES_USER="elastic"
 export ES_PASS="elastic"
 export ES_MAX_RESULT=1000000000
 
 export BACKEND_HOST="0.0.0.0"
-export BACKEND_PORT=9949
+export BACKEND_PORT=9947
 export BACKEND_DEFAULT_WEBHOOK="http://192.168.1.7:9948"
