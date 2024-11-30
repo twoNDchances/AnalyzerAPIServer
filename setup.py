@@ -215,17 +215,17 @@ def check_elasticsearch():
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b(.+\\s*R?LIKE\\s*([\'"].*[\'"]|\\((\\w*|.*)\\))|.*(\\s*[\'"]|\\s+\\d+)\\s*R?LIKE\\s+\\d+\\s*)',
+                'rule_execution': '(?i)\\b(.+\\s*R?LIKE\\s*([\'"].*[\'"]|\\((\\w*|.*)\\))|.*(\\s*[\'"]|\\s+\\d+)\\s*R?LIKE\\s+\\d+\\s*)\\b',
                 'rule_description': 'Detect using LIKE condition'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b(EXEC\\s*\\(\\s*(@\\w+|[\'"].*[\'"])\\s*\\);|EXEC?\\s+\\w+\\s+@\\w+\\s*=\\s*|EXECUTE\\s+\\w+\\s*;|EXECUTE\\s*(\\w+|[\'"].*[\'"]);)',
+                'rule_execution': '(?i)\\b(EXEC\\s*\\(\\s*(@\\w+|[\'"].*[\'"])\\s*\\);|EXEC?\\s+\\w+\\s+@\\w+\\s*=\\s*|EXECUTE\\s+\\w+\\s*;|EXECUTE\\s*(\\w+|[\'"].*[\'"]);)\\b',
                 'rule_description': 'Detect using EXEC (or EXECUTE) statment'
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b(INTO?\\s*OUTFILE\\s*[\'"].*[\'"]|COPY\\s*(\\w+|[\'"].*[\'"]|\\(.*\\))\\s*(TO|FROM)\\s+PROGRAM)',
+                'rule_execution': '(?i)\\b(INTO?\\s*OUTFILE\\s*[\'"].*[\'"]|COPY\\s*(\\w+|[\'"].*[\'"]|\\(.*\\))\\s*(TO|FROM)\\s+PROGRAM)\\b',
                 'rule_description': 'Detect using SQLi to RCE'
             }
         ]
