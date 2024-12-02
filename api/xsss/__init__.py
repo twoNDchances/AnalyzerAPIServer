@@ -3,7 +3,7 @@ from flask import Blueprint, request
 from json import loads, dumps
 from .operations import xss_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
-from ..functions import get_value_from_json, parse_path, is_valid_regex, re, traverse_json, execute_action, check_threshold, decode_hex_escaped_string
+from ..functions import get_value_from_json, hex_escape_to_char, parse_multipart_form_data, parse_path, is_valid_regex, re, traverse_json, execute_action, check_threshold, decode_hex_escaped_string
 
 
 xss_main_blueprint = Blueprint(name='xss_main_blueprint', import_name=__name__)
@@ -116,10 +116,28 @@ def xss_analyzer_endpoint(rule_name: str):
                     value = decode_hex_escaped_string(input_string=str(value))
                     for rule in rules:
                         if rule.search(value):
+                            root_cause_value = hex_escape_to_char(string=value)
+                            try:
+                                root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                            except:
+                                try:
+                                    root_cause_value: dict = loads(root_cause_value)
+                                except:
+                                    logs['[Warning]'].append({
+                                        'Analyzers': {
+                                            'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
+                                            'pattern': root_cause_value
+                                        }
+                                    })
+                            if isinstance(root_cause_value, dict):
+                                for _, _value in root_cause_value.items():
+                                    if rule.search(_value):
+                                        root_cause_value = _value
+                                        break
                             result = {
                                 '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': key,
-                                'field_value': value,
+                                'field_value': root_cause_value,
                                 'by_rule': rule.pattern,
                                 '_ip_root_cause_': ip_root_cause_field_value
                             }
@@ -207,10 +225,28 @@ def xss_analyzer_endpoint(rule_name: str):
                 json_value_str = decode_hex_escaped_string(input_string=str(json_value))
                 for rule in rules:
                     if rule.search(json_value_str):
+                        root_cause_value = hex_escape_to_char(string=json_value_str)
+                        try:
+                            root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                        except:
+                            try:
+                                root_cause_value: dict = loads(root_cause_value)
+                            except:
+                                logs['[Warning]'].append({
+                                    'Analyzers': {
+                                        'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
+                                        'pattern': root_cause_value
+                                    }
+                                })
+                        if isinstance(root_cause_value, dict):
+                            for _, _value in root_cause_value.items():
+                                if rule.search(_value):
+                                    root_cause_value = _value
+                                    break
                         result = {
                             '_message_': f'Detected from {rule_name} analyzer',
                             'field_name': target_field,
-                            'field_value': json_value_str,
+                            'field_value': root_cause_value,
                             'by_rule': rule.pattern,
                             '_ip_root_cause_': ip_root_cause_field_value
                         }
@@ -294,10 +330,28 @@ def xss_analyzer_endpoint(rule_name: str):
                     json_value_str = decode_hex_escaped_string(input_string=str(json_value))
                     for rule in rules:
                         if rule.search(json_value_str):
+                            root_cause_value = hex_escape_to_char(string=json_value_str)
+                            try:
+                                root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                            except:
+                                try:
+                                    root_cause_value: dict = loads(root_cause_value)
+                                except:
+                                    logs['[Warning]'].append({
+                                        'Analyzers': {
+                                            'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
+                                            'pattern': root_cause_value
+                                        }
+                                    })
+                            if isinstance(root_cause_value, dict):
+                                for _, _value in root_cause_value.items():
+                                    if rule.search(_value):
+                                        root_cause_value = _value
+                                        break
                             result = {
                                 '_message_': f'Detected from {rule_name} analyzer',
                                 'field_name': path,
-                                'field_value': json_value_str,
+                                'field_value': root_cause_value,
                                 'by_rule': rule.pattern,
                                 '_ip_root_cause_': ip_root_cause_field_value
                             }

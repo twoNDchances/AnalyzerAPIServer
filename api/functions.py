@@ -251,3 +251,46 @@ def decode_hex_escaped_string(input_string):
         return bytes.fromhex(match.group(1)).decode('latin1')
     decoded_string = re.sub(r'\\x([0-9A-Fa-f]{2})', replace_match, input_string)
     return decoded_string
+
+
+def hex_escape_to_char(string):
+    hex_pattern = r"\\x([0-9A-Fa-f]{2})"
+    def hex_to_char(match):
+        hex_value = match.group(1)
+        if hex_value == '22':
+            return '"'
+        elif hex_value == '0D':
+            return '\r'
+        elif hex_value == '0A':
+            return '\n'
+        else:
+            return '\\x' + hex_value
+    return re.sub(hex_pattern, hex_to_char, string)
+
+
+def parse_multipart_form_data(raw_data: str):
+    first_line_end = raw_data.find("\r\n")
+    if first_line_end == -1:
+        raise ValueError("Invalid format: Cannot find boundary")
+    boundary = raw_data[:first_line_end]
+    parts = raw_data.split(boundary)
+    result = {}
+
+    for part in parts:
+        if not part.strip() or part.strip() == "--":
+            continue
+        header_end = part.find("\r\n\r\n")
+        if header_end == -1:
+            continue
+        headers = part[:header_end]
+        body = part[header_end + 4:].strip("\r\n")
+        name_start = headers.find('name="')
+        if name_start == -1:
+            continue
+        name_start += len('name="')
+        name_end = headers.find('"', name_start)
+        if name_end == -1:
+            continue
+        field_name = headers[name_start:name_end]
+        result[field_name] = body
+    return result

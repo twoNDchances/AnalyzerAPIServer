@@ -4,7 +4,7 @@ from json import loads, dumps
 import yara
 from .operations import fus_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
-from ..functions import check_threshold, get_value_from_json, parse_path, is_valid_regex, re, execute_action, decode_hex_escaped_string
+from ..functions import check_threshold, get_value_from_json, hex_escape_to_char, parse_multipart_form_data, parse_path, is_valid_regex, re, execute_action, decode_hex_escaped_string
 
 
 fus_main_blueprint = Blueprint(name='fus_main_blueprint', import_name=__name__)
@@ -130,10 +130,28 @@ def fus_analyzer_page(rule_name: str):
         for rule in rules:
             escape_hex_value = decode_hex_escaped_string(input_string=json_value_str)
             if rule.search(escape_hex_value):
+                root_cause_value = hex_escape_to_char(string=escape_hex_value)
+                try:
+                    root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                except:
+                    try:
+                        root_cause_value: dict = loads(root_cause_value)
+                    except:
+                        logs['[Warning]'].append({
+                            'Analyzers': {
+                                'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
+                                'pattern': root_cause_value
+                            }
+                        })
+                if isinstance(root_cause_value, dict):
+                    for _, _value in root_cause_value.items():
+                        if rule.search(_value):
+                            root_cause_value = _value
+                            break
                 result['regex'] = {
                     '_message_': f'Detected from {rule_name} analyzer',
                     'field_name': target_field,
-                    'field_value': json_value_str,
+                    'field_value': root_cause_value,
                     'by_rule': rule.pattern,
                     '_ip_root_cause_': ip_root_cause_field_value
                 }
