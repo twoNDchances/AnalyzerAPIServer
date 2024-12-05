@@ -222,7 +222,7 @@ rule php_in_image
         xss_rules = [
             {
                 'rule_type': 'XSS',
-                'rule_execution': '(?i)<.*?(=|:|>)(.*?[\"\']|>|.*?)>',
+                'rule_execution': '(?i)<.*?(=|:|>)(.*?[\'"]|>|.*?)>',
                 'rule_description': 'Detect html injection'
             },
             {
@@ -262,7 +262,7 @@ rule php_in_image
             },
             {
                 'rule_type': 'XSS',
-                'rule_execution': '(?i)(\\"|\'|)\\s*alert\\(.*?\\);?(\\\\"|\'|)',
+                'rule_execution': '(?i)([\'"]|)\\s*alert\\(.*?\\);?([\'"]|)',
                 'rule_description': 'Detect alert() usage'
             },
             {
