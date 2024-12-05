@@ -241,7 +241,7 @@ def check_elasticsearch():
         xss_rules = [
             {
                 'rule_type': 'XSS',
-                'rule_execution': '(?i)<.*?(=|:|>)(.*?[\'"]|>|.*?)>',
+                'rule_execution': '(?i)<.*?(=|:|>)(.*?[\'"]|>|.*?)',
                 'rule_description': 'Detect html injection'
             },
             {
