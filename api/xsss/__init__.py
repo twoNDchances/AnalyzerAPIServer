@@ -1,6 +1,8 @@
 from datetime import datetime
 from flask import Blueprint, request
 from json import loads, dumps
+import html
+from urllib.parse import parse_qs
 from .operations import xss_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
 from ..functions import get_value_from_json, hex_escape_to_char, parse_multipart_form_data, parse_path, is_valid_regex, re, traverse_json, execute_action, check_threshold, decode_hex_escaped_string
@@ -123,12 +125,18 @@ def xss_analyzer_endpoint(rule_name: str):
                                 try:
                                     root_cause_value: dict = loads(root_cause_value)
                                 except:
-                                    logs['[Warning]'].append({
-                                        'Analyzers': {
-                                            'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
-                                            'pattern': root_cause_value
-                                        }
-                                    })
+                                    try:
+                                        parsed_data = parse_qs(root_cause_value)
+                                        if not root_cause_value:
+                                            raise
+                                        root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                                    except:
+                                        logs['[Warning]'].append({
+                                            'Analyzers': {
+                                                'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                                'pattern': html.escape(root_cause_value)
+                                            }
+                                        })
                             if isinstance(root_cause_value, dict):
                                 for _, _value in root_cause_value.items():
                                     if rule.search(_value):
@@ -232,12 +240,18 @@ def xss_analyzer_endpoint(rule_name: str):
                             try:
                                 root_cause_value: dict = loads(root_cause_value)
                             except:
-                                logs['[Warning]'].append({
-                                    'Analyzers': {
-                                        'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
-                                        'pattern': root_cause_value
-                                    }
-                                })
+                                try:
+                                    parsed_data = parse_qs(root_cause_value)
+                                    if not root_cause_value:
+                                        raise
+                                    root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                                except:
+                                    logs['[Warning]'].append({
+                                        'Analyzers': {
+                                            'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                            'pattern': html.escape(root_cause_value)
+                                        }
+                                    })
                         if isinstance(root_cause_value, dict):
                             for _, _value in root_cause_value.items():
                                 if rule.search(_value):
@@ -337,12 +351,18 @@ def xss_analyzer_endpoint(rule_name: str):
                                 try:
                                     root_cause_value: dict = loads(root_cause_value)
                                 except:
-                                    logs['[Warning]'].append({
-                                        'Analyzers': {
-                                            'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
-                                            'pattern': root_cause_value
-                                        }
-                                    })
+                                    try:
+                                        parsed_data = parse_qs(root_cause_value)
+                                        if not root_cause_value:
+                                            raise
+                                        root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                                    except:
+                                        logs['[Warning]'].append({
+                                            'Analyzers': {
+                                                'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                                'pattern': html.escape(root_cause_value)
+                                            }
+                                        })
                             if isinstance(root_cause_value, dict):
                                 for _, _value in root_cause_value.items():
                                     if rule.search(_value):

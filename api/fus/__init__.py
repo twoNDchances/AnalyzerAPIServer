@@ -1,6 +1,8 @@
-from datetime import datetime
 from flask import Blueprint, request
+from datetime import datetime
 from json import loads, dumps
+import html
+from urllib.parse import parse_qs
 import yara
 from .operations import fus_operation_blueprint
 from ..storage import response_elasticsearch, ES_MAX_RESULT
@@ -137,12 +139,18 @@ def fus_analyzer_page(rule_name: str):
                     try:
                         root_cause_value: dict = loads(root_cause_value)
                     except:
-                        logs['[Warning]'].append({
-                            'Analyzers': {
-                                'message': '"target_value" field not a valid in ["multipart/form-data", "application/json"], original accepted',
-                                'pattern': root_cause_value
-                            }
-                        })
+                        try:
+                            parsed_data = parse_qs(root_cause_value)
+                            if not root_cause_value:
+                                raise
+                            root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                        except:
+                            logs['[Warning]'].append({
+                                'Analyzers': {
+                                    'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                    'pattern': html.escape(root_cause_value)
+                                }
+                            })
                 if isinstance(root_cause_value, dict):
                     for _, _value in root_cause_value.items():
                         if rule.search(_value):
