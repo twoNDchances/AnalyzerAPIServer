@@ -227,6 +227,26 @@ rule php_in_image
             },
             {
                 'rule_type': 'XSS',
+                'rule_execution': '(?i)(.*java|<).*script(:|>|.*)',
+                'rule_description': 'Detect javascript or script tag injection'
+            },
+            {
+                'rule_type': 'XSS',
+                'rule_execution': '(?i)<.*?img.*?[^>]*?(.*?=|>)',
+                'rule_description': 'Detect img tag injection'
+            },
+            {
+                'rule_type': 'XSS',
+                'rule_execution': '(?i).*(alert|prompt|confirm).*(\(|\'|"|)(.*|>)',
+                'rule_description': 'Detect danger function injection'
+            },
+            {
+                'rule_type': 'XSS',
+                'rule_execution': '(?i)(?=.*[a-z])(?=.*[0-9a-fA-F])<.*?(=|:|>)(.*?[\'"]|>|.*?)',
+                'rule_description': 'Detect all tag injection'
+            },
+            {
+                'rule_type': 'XSS',
                 'rule_execution': '(?i)<.*?script.*?>.*?(</script>)?',
                 'rule_description': 'Detect <script> tags'
             },
