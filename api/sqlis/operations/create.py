@@ -109,13 +109,6 @@ class SQLInjectionRuleCreations(Resource):
             'action_id': actions.raw['hits']['hits'][0]['_id'] if actions.raw['hits']['hits'].__len__() == 1 else None,
             'type_attack': 'sqli'
         })
-        response_elasticsearch.index(index='analyzer-results', document={
-            'analyzer': 'SQLIs',
-            'reference': request_body['ruleName'],
-            'match_count': 0,
-            'execution_count': 0,
-            'logs': '{}'
-        })
         return {
             'type': 'sqlis',
             'data': None,

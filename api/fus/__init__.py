@@ -38,12 +38,6 @@ def fus_analyzer_page(rule_name: str):
             'data': None,
             'reason': 'Success: This analyzer is disabled'
         }
-    analyzer_result = response_elasticsearch.search(index='analyzer-results', query={'bool': {
-        'must': [
-            {'term': {'reference.keyword': fu_analyzer['_source']['rule_name']}},
-            {'term': {'analyzer.keyword': 'FUs'}}
-        ]
-    }}, size=ES_MAX_RESULT).raw['hits']['hits']
     try:
         loads(request.data)
     except:
@@ -124,9 +118,11 @@ def fus_analyzer_page(rule_name: str):
                 'pattern': f'{target_field}'
             }
         })
-        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-            'logs': dumps(logs)
-        }, retry_on_conflict=ES_MAX_RESULT)
+        response_elasticsearch.index(index='analyzer-errorlogs', document={
+            'analyzer': 'fu',
+            'reference': rule_name,
+            'errorlog': dumps(logs)
+        })
     else:
         json_value_str = str(json_value)
         for rule in rules:
@@ -186,10 +182,16 @@ def fus_analyzer_page(rule_name: str):
                 })
                 continue
         if result['regex'] is not None or result['yara'] is not None:
-            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                'match_count': analyzer_result[0]['_source']['match_count'] + 1,
-                'logs': dumps(logs)
-            }, retry_on_conflict=ES_MAX_RESULT)
+            response_elasticsearch.index(index='analyzer-errorlogs', document={
+                'analyzer': 'fu',
+                'reference': rule_name,
+                'errorlog': dumps(logs)
+            })
+            response_elasticsearch.index(index='analyzer-results', document={
+                'analyzer': 'fu',
+                'reference': rule_name,
+                'type': 'match_count'
+            })
             if action_id is not None:
                 try:
                     action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -227,29 +229,37 @@ def fus_analyzer_page(rule_name: str):
                                 'pattern': action.raw['_source']['action_configuration']
                             }
                         })
-                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                            'logs': dumps(logs)
-                        }, retry_on_conflict=ES_MAX_RESULT)
+                        response_elasticsearch.index(index='analyzer-errorlogs', document={
+                            'analyzer': 'fu',
+                            'reference': rule_name,
+                            'errorlog': dumps(logs)
+                        })
                     else:
-                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                            'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                        }, retry_on_conflict=ES_MAX_RESULT)
+                        response_elasticsearch.index(index='analyzer-results', document={
+                            'analyzer': 'fu',
+                            'reference': rule_name,
+                            'type': 'execution_count'
+                        })
             return {
                 'type': 'fu_analyzer',
                 'data': result,
                 'reason': 'Success'
             }
-        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-            'logs': dumps(logs)
-        }, retry_on_conflict=ES_MAX_RESULT)
+        response_elasticsearch.index(index='analyzer-errorlogs', document={
+            'analyzer': 'fu',
+            'reference': rule_name,
+            'errorlog': dumps(logs)
+        })
         return {
             'type': 'fu_analyzer',
             'data': None,
             'reason': 'Success: Clean log'
         }
-    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-        'logs': dumps(logs)
-    }, retry_on_conflict=ES_MAX_RESULT)
+    response_elasticsearch.index(index='analyzer-errorlogs', document={
+        'analyzer': 'fu',
+        'reference': rule_name,
+        'errorlog': dumps(logs)
+    })
     return {
         'type': 'fu_analyzer',
         'data': None,

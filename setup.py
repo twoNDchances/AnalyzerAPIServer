@@ -1,14 +1,23 @@
 from elasticsearch import Elasticsearch
 from json import dumps
 from gather import ES_HOST, ES_USER, ES_PASS, ES_MAX_RESULT, BACKEND_DEFAULT_WEBHOOK
+from time import sleep
 
 
 es = Elasticsearch(hosts=ES_HOST, basic_auth=(ES_USER, ES_PASS))
 
 def check_elasticsearch():
     while True:
-        if es.ping() is True:
-            break
+        try:
+            if es.ping() is True:
+                break
+            else:
+                print('[Warning] Ping for test connection fail, will try again after 5 seconds...')
+                sleep(5)
+        except:
+            print('[Warning] Ping for test connection fail, will try again after 5 seconds...') 
+            sleep(5)
+            continue
     index_settings = {
         "settings": {
             "index": {
@@ -63,29 +72,12 @@ def check_elasticsearch():
         print('[Info] Creating "analyzer-results"...')
         es.indices.create(index="analyzer-results", body=index_settings)
         print('[Info] Created "analyzer-results"')
-        print('[Info] Preparing to create default result...')
-        es.index(index='analyzer-results', document={
-            'analyzer': 'SQLIs',
-            'reference': 'default-sqli-analyzer',
-            'match_count': 0,
-            'execution_count': 0,
-            'logs': '{}'
-        })
-        es.index(index='analyzer-results', document={
-            'analyzer': 'XSSs',
-            'reference': 'default-xss-analyzer',
-            'match_count': 0,
-            'execution_count': 0,
-            'logs': '{}'
-        })
-        es.index(index='analyzer-results', document={
-            'analyzer': 'FUs',
-            'reference': 'default-fu-analyzer',
-            'match_count': 0,
-            'execution_count': 0,
-            'logs': '{}'
-        })
-        print('[Info] Created all default result')
+    print('[Info] Check done')
+    print('[Info] Perform check "analyzer-errorlogs" index...')
+    if not es.indices.exists(index='analyzer-errorlogs'):
+        print('[Info] Creating "analyzer-errorlogs"...')
+        es.indices.create(index='analyzer-errorlogs', body=index_settings)
+        print('[Info] Created "analyzer-errorlogs"')
     print('[Info] Check done')
     print('[Info] Perform check "analyzer-sqlis" index...')
     if not es.indices.exists(index='analyzer-sqlis'):
@@ -256,7 +248,7 @@ def check_elasticsearch():
             },
             {
                 'rule_type': 'XSS',
-                'rule_execution': '(?i).*(alert|prompt|confirm).*(\(|\'|"|)(.*|>)',
+                'rule_execution': '(?i).*(alert|prompt|confirm).*(\\(|\'|"|)(.*|>)',
                 'rule_description': 'Detect danger function injection'
             },
             {

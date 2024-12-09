@@ -38,16 +38,6 @@ def sqli_analyzer_endpoint(rule_name: str):
             'data': None,
             'reason': 'Success: This analyzer is disabled'
         }
-    analyzer_result = response_elasticsearch.search(index='analyzer-results', query={'bool': {
-        'must': [
-            {'term': {
-                'reference.keyword': sqli_analyzer['_source']['rule_name']
-            }},
-            {'term': {
-                'analyzer.keyword': 'SQLIs'
-            }}
-        ]
-    }}, size=ES_MAX_RESULT).raw['hits']['hits']
     try:
         loads(request.data)
     except:
@@ -156,10 +146,16 @@ def sqli_analyzer_endpoint(rule_name: str):
                 if flag:
                     break
             if result is not None:
-                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                    'match_count': analyzer_result[0]['_source']['match_count'] + 1,
-                    'logs': dumps(logs)
-                }, retry_on_conflict=ES_MAX_RESULT)
+                response_elasticsearch.index(index='analyzer-errorlogs', document={
+                    'analyzer': 'sqli',
+                    'reference': rule_name,
+                    'errorlog': dumps(logs)
+                })
+                response_elasticsearch.index(index='analyzer-results', document={
+                    'analyzer': 'sqli',
+                    'reference': rule_name,
+                    'type': 'match_count'
+                })
                 if action_id is not None:
                     try:
                         action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -196,13 +192,17 @@ def sqli_analyzer_endpoint(rule_name: str):
                                     'pattern': action['_source']['action_configuration']
                                 }
                             })
-                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                'logs': dumps(logs)
-                            }, retry_on_conflict=ES_MAX_RESULT)
+                            response_elasticsearch.index(index='analyzer-errorlogs', document={
+                                'analyzer': 'sqli',
+                                'reference': rule_name,
+                                'errorlog': dumps(logs)
+                            })
                         else:
-                            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                            }, retry_on_conflict=ES_MAX_RESULT)
+                            response_elasticsearch.index(index='analyzer-results', document={
+                                'analyzer': 'sqli',
+                                'reference': rule_name,
+                                'type': 'execution_count'
+                            })
                 return {
                     'type': 'sqli_analyzer',
                     'data': result,
@@ -260,10 +260,16 @@ def sqli_analyzer_endpoint(rule_name: str):
                         }
                         break
                 if result is not None:
-                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                        'match_count': analyzer_result[0]['_source']['match_count'] + 1,
-                        'logs': dumps(logs)
-                    }, retry_on_conflict=ES_MAX_RESULT)
+                    response_elasticsearch.index(index='analyzer-errorlogs', document={
+                        'analyzer': 'sqli',
+                        'reference': rule_name,
+                        'errorlog': dumps(logs)
+                    })
+                    response_elasticsearch.index(index='analyzer-results', document={
+                        'analyzer': 'sqli',
+                        'reference': rule_name,
+                        'type': 'match_count'
+                    })
                     if action_id is not None:
                         try:
                             action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -300,13 +306,17 @@ def sqli_analyzer_endpoint(rule_name: str):
                                         'pattern': action.raw['_source']['action_configuration']
                                     }
                                 })
-                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                    'logs': dumps(logs)
-                                }, retry_on_conflict=ES_MAX_RESULT)
+                                response_elasticsearch.index(index='analyzer-errorlogs', document={
+                                    'analyzer': 'sqli',
+                                    'reference': rule_name,
+                                    'errorlog': dumps(logs)
+                                })
                             else:
-                                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                    'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                                }, retry_on_conflict=ES_MAX_RESULT)
+                                response_elasticsearch.index(index='analyzer-results', document={
+                                    'analyzer': 'sqli',
+                                    'reference': rule_name,
+                                    'type': 'execution_count'
+                                })
                     return {
                         'type': 'sqli_analyzer',
                         'data': result,
@@ -322,9 +332,11 @@ def sqli_analyzer_endpoint(rule_name: str):
                     'message': 'Target Field is not exist, skipped',
                     'pattern': f'{target_field}'
                 })
-                response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                    'logs': dumps(logs)
-                }, retry_on_conflict=ES_MAX_RESULT)
+                response_elasticsearch.index(index='analyzer-errorlogs', document={
+                    'analyzer': 'sqli',
+                    'reference': rule_name,
+                    'errorlog': dumps(logs)
+                })
         elif str(type(target_field_path)) == "<class 'list'>":
             target_field_value = []
             for path in target_field_path:
@@ -371,10 +383,16 @@ def sqli_analyzer_endpoint(rule_name: str):
                             }
                             break
                     if result is not None:
-                        response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                            'match_count': analyzer_result[0]['_source']['match_count'] + 1,
-                            'logs': dumps(logs)
-                        }, retry_on_conflict=ES_MAX_RESULT)
+                        response_elasticsearch.index(index='analyzer-errorlogs', document={
+                            'analyzer': 'sqli',
+                            'reference': rule_name,
+                            'errorlog': dumps(logs)
+                        })
+                        response_elasticsearch.index(index='analyzer-results', document={
+                            'analyzer': 'sqli',
+                            'reference': rule_name,
+                            'type': 'match_count'
+                        })
                         if action_id is not None:
                             try:
                                 action = response_elasticsearch.get(index='analyzer-actions', id=action_id)
@@ -411,13 +429,17 @@ def sqli_analyzer_endpoint(rule_name: str):
                                             'pattern': action[3]
                                         }
                                     })
-                                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                        'logs': dumps(logs)
-                                    }, retry_on_conflict=ES_MAX_RESULT)
+                                    response_elasticsearch.index(index='analyzer-errorlogs', document={
+                                        'analyzer': 'sqli',
+                                        'reference': rule_name,
+                                        'errorlog': dumps(logs)
+                                    })
                                 else:
-                                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                                        'execution_count': analyzer_result[0]['_source']['execution_count'] + 1
-                                    }, retry_on_conflict=ES_MAX_RESULT)
+                                    response_elasticsearch.index(index='analyzer-results', document={
+                                        'analyzer': 'sqli',
+                                        'reference': rule_name,
+                                        'type': 'execution_count'
+                                    })
                         return {
                             'type': 'sqli_analyzer',
                             'data': result,
@@ -430,9 +452,11 @@ def sqli_analyzer_endpoint(rule_name: str):
                             'pattern': f'{path}'
                         }
                     })
-                    response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                        'logs': dumps(logs)
-                    }, retry_on_conflict=ES_MAX_RESULT)
+                    response_elasticsearch.index(index='analyzer-errorlogs', document={
+                        'analyzer': 'sqli',
+                        'reference': rule_name,
+                        'errorlog': dumps(logs)
+                    })
             return {
                 'type': 'sqli_analyzer',
                 'data': None,
@@ -445,9 +469,11 @@ def sqli_analyzer_endpoint(rule_name: str):
                     'pattern': f'{target_field}'
                 }
             })
-            response_elasticsearch.update(index='analyzer-results', id=analyzer_result[0]['_id'], doc={
-                'logs': dumps(logs)
-            }, retry_on_conflict=ES_MAX_RESULT)
+            response_elasticsearch.index(index='analyzer-errorlogs', document={
+                'analyzer': 'sqli',
+                'reference': rule_name,
+                'errorlog': dumps(logs)
+            })
     return {
         'type': 'sqli_analyzer',
         'data': None,

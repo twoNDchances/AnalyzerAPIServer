@@ -5,10 +5,13 @@ from gather import ES_HOST, ES_USER, ES_PASS, ES_MAX_RESULT
 response_elasticsearch = Elasticsearch(hosts=ES_HOST, basic_auth=(ES_USER, ES_PASS))
 
 def load_rule_library():
-    if response_elasticsearch.ping() is False:
-        print('[Error] Fail to connect to Elasticsearch')
+    try:
+        if response_elasticsearch.ping() is False:
+            print('[Error] Fail to connect to Elasticsearch')
+            return False
+    except:
         return False
-    else:
+    if response_elasticsearch.ping() is True:
         index_settings = {
             "settings": {
                 "index": {
@@ -21,6 +24,9 @@ def load_rule_library():
         
         if response_elasticsearch.indices.exists(index='analyzer-action-timestamps'):
             response_elasticsearch.indices.delete(index='analyzer-action-timestamps')
+
+        if response_elasticsearch.indices.exists(index='analyzer-errorlogs'):
+            response_elasticsearch.indices.delete(index='analyzer-errorlogs')
 
         if response_elasticsearch.indices.exists(index='analyzer-results'):
             response_elasticsearch.indices.delete(index='analyzer-results')
@@ -42,6 +48,7 @@ def load_rule_library():
 
         response_elasticsearch.indices.create(index="analyzer-actions", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-action-timestamps", body=index_settings)
+        response_elasticsearch.indices.create(index='analyzer-errorlogs', body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-results", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-sqlis", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-xsss", body=index_settings)
@@ -237,7 +244,7 @@ rule php_in_image
             },
             {
                 'rule_type': 'XSS',
-                'rule_execution': '(?i).*(alert|prompt|confirm).*(\(|\'|"|)(.*|>)',
+                'rule_execution': '(?i).*(alert|prompt|confirm).*(\\(|\'|"|)(.*|>)',
                 'rule_description': 'Detect danger function injection'
             },
             {
