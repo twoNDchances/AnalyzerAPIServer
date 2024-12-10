@@ -136,6 +136,41 @@ rule php_in_image
         sqli_rules = [
             {
                 'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\s*EXEC\\s*\\(\\s*(@\\w+|[\'"].*[\'"])\\s*\\);|EXEC?\\s+\\w+\\s+@\\w+\\s*=\\s*|EXECUTE\\s+\\w+\\s*;|EXECUTE\\s*(\\w+|[\'"].*[\'"])\\s*;\\s*',
+                'rule_description': 'Detect using EXEC (or EXECUTE) statment'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\s*INTO?\\s*OUTFILE\\s*[\'"].*[\'"]|COPY\\s*(\\w+|[\'"].*[\'"]|\\(.*\\))\\s*(TO|FROM)\\s+PROGRAM\\s*',
+                'rule_description': 'Detect using SQLi to RCE'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)\\s*UNION\\s+SELECT\\s*',
+                'rule_description': 'Detect using SQLi by UNION'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i).*pg_(catalog|sleep)',
+                'rule_description': 'Detect using SQLi by sleep function'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)(.*|or|and)(or|and|.*)("|\'|-|&|&&|\\*|`|\\|;)',
+                'rule_description': 'Detect using SQLi by Logic operator'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '(?i)["\'`](?:[\\s\\x0b]*![\\s\\x0b]*["\'0-9A-Z_-z]|;?[\\s\\x0b]*(?:having|select|union\\b[\\s\\x0b]*(?:all|(?:distin|sele)ct))\\b[\\s\\x0b]*[^\\s\\x0b])|\\b(?:(?:(?:c(?:onnection_id|urrent_user)|database|schema|user)[\\s\\x0b]*?|select.*?[0-9A-Z_a-z]?user)\\(|exec(?:ute)?[\\s\\x0b]+master\\.|from[^0-9A-Z_a-z]+information_schema[^0-9A-Z_a-z]|into[\\s\\x0b\\+]+(?:dump|out)file[\\s\\x0b]*?["\'`]|union(?:[\\s\\x0b]select[\\s\\x0b]@|[\\s\\x0b\\(0-9A-Z_a-z]*?select))|[\\s\\x0b]*?exec(?:ute)?.*?[^0-9A-Z_a-z]xp_cmdshell|[^0-9A-Z_a-z]iif[\\s\\x0b]*?\\(',
+                'rule_description': 'Detect using SQLi by UNION'
+            },
+            {
+                'rule_type': 'SQLI',
+                'rule_execution': '\\/\\*!?|\\*\\/|[\';]--|--(?:[\\s\\x0b]|[^\\-]*?-)|[^&\\-]#.*?[\\s\\x0b]|;?\\x00',
+                'rule_description': 'Detect using SQLi by UNION'
+            },
+            {
+                'rule_type': 'SQLI',
                 'rule_execution': '(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|SHOW)\\b',
                 'rule_description': 'Common SQL keywords'
             },
@@ -201,28 +236,13 @@ rule php_in_image
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b\\d+\\s*=\\s*\\d+\\b',
+                'rule_execution': '(?i)\\b.*=.*\\b',
                 'rule_description': 'Detect conditions with tautologies (Example: \'1\'=\'1\')'
             },
             {
                 'rule_type': 'SQLI',
                 'rule_execution': '(?i).+\\s*R?LIKE\\s*([\'"].*[\'"]|\\((\\w*|.*)\\))|.*(\\s*[\'"]|\\s+\\d+)\\s*R?LIKE\\s+\\d+\\s*',
                 'rule_description': 'Detect using LIKE condition'
-            },
-            {
-                'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\s*EXEC\\s*\\(\\s*(@\\w+|[\'"].*[\'"])\\s*\\);|EXEC?\\s+\\w+\\s+@\\w+\\s*=\\s*|EXECUTE\\s+\\w+\\s*;|EXECUTE\\s*(\\w+|[\'"].*[\'"])\\s*;\\s*',
-                'rule_description': 'Detect using EXEC (or EXECUTE) statment'
-            },
-            {
-                'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\s*INTO?\\s*OUTFILE\\s*[\'"].*[\'"]|COPY\\s*(\\w+|[\'"].*[\'"]|\\(.*\\))\\s*(TO|FROM)\\s+PROGRAM\\s*',
-                'rule_description': 'Detect using SQLi to RCE'
-            },
-            {
-                'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\s*UNION\\s+SELECT\\s*',
-                'rule_description': 'Detect using SQLi by UNION'
             }
         ]
 
