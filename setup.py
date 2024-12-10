@@ -80,6 +80,33 @@ def check_elasticsearch():
         print('[Info] Created "analyzer-errorlogs"')
     print('[Info] Check done')
     print('[Info] Perform check "analyzer-sqlis" index...')
+    action_id = es.search(index='analyzer-actions', query={
+        'term': {
+            'action_name.keyword': 'default-action-responser'
+        }
+    }, size=ES_MAX_RESULT).raw['hits']['hits']
+    if action_id.__len__() == 0:
+        action_id = es.index(index='analyzer-actions', document={
+            'action_name': 'default-action-responser',
+            'action_type': 'webhook',
+            'action_configuration': dumps({
+                'url': BACKEND_DEFAULT_WEBHOOK,
+                'type': 'custom',
+                'body': {
+                    'message': '$result'
+                },
+                'method': 'POST',
+                'connection_timeout': 2,
+                'data_read_timeout': 6,
+                'advanced': {
+                    'is_enabled': True,
+                    'threshold': 3,
+                    'time_window_seconds': 30
+                }
+            })
+        })
+    else:
+        action_id = action_id[0]
     if not es.indices.exists(index='analyzer-sqlis'):
         print('[Info] Creating "analyzer-sqlis"...')
         es.indices.create(index="analyzer-sqlis", body=index_settings)
