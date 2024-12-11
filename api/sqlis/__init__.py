@@ -146,6 +146,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                 if flag:
                     break
             if result is not None:
+                print(result)
                 response_elasticsearch.index(index='analyzer-errorlogs', document={
                     'analyzer': 'sqli',
                     'reference': rule_name,
