@@ -184,7 +184,7 @@ def check_elasticsearch():
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(.*|or|and)(or|and|.*)("|\'|-|&|&&|\\*|`|\\|;)',
+                'rule_execution': '(?i)(.*|or|and)(or|and|.*)("|\'|-|&|&&|\*|`|\\|;)',
                 'rule_description': 'Detect using SQLi by Logic operator'
             },
             {
