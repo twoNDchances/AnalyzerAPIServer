@@ -295,7 +295,7 @@ def check_elasticsearch():
             },
             {
                 'rule_type': 'XSS',
-                'rule_execution': '(?i).*(alert|prompt|confirm).*(\\(|\'|"|)(.*|>)',
+                'rule_execution': '(?i)(alert|prompt|confirm).*[\\(\'"]+.*',
                 'rule_description': 'Detect danger function injection'
             },
             {
