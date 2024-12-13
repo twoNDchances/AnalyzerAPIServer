@@ -166,11 +166,6 @@ rule php_in_image
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '\\/\\*!?|\\*\\/|[\';]--|--(?:[\\s\\x0b]|[^\\-]*?-)|[^&\\-]#.*?[\\s\\x0b]|;?\\x00',
-                'rule_description': 'Detect using SQLi by UNION'
-            },
-            {
-                'rule_type': 'SQLI',
                 'rule_execution': '(?i)\\b(SELECT|INSERT|DELETE|UPDATE|DROP|ALTER|CREATE|TRUNCATE|REPLACE|MERGE|GRANT|REVOKE|SHOW)\\b',
                 'rule_description': 'Common SQL keywords'
             },
