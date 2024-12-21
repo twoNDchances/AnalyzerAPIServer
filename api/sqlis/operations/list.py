@@ -27,6 +27,7 @@ class SQLInjectionRuleLists(Resource):
                 'ip_root_cause_field': sqli['_source']['ip_root_cause_field'],
                 'regex_matcher': 'Defined' if sqli['_source']['regex_matcher'].__len__() > 0 else 'Undefined',
                 'rule_library': sqli['_source']['rule_library'] if sqli['_source']['rule_library'] is not None else 'Not Used',
+                'wordlist': sqli['_source']['wordlist'] if sqli['_source']['wordlist'] is not None else 'Not Used',
                 'action_id': self.get_action_type_by_id(id=sqli['_source']['action_id']) if sqli['_source']['action_id'] is not None else 'Inaction'
             } for sqli in sqlis.raw['hits']['hits']],
             'reason': 'Success'

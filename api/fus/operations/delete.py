@@ -25,6 +25,30 @@ class FileUploadRuleTerminations(Resource):
                 'reason': 'NotFound: File Upload Rule is not found for delete'
             }, 404
         response_elasticsearch.delete(index='analyzer-fus', id=fu.raw['_id'])
+        response_elasticsearch.delete_by_query(index='analyzer-results', query={
+            'bool': {
+                'must': [
+                    {'term': {'analyzer.keyword': 'fu'}},
+                    {'term': {'reference.keyword': fu.raw['_source']['rule_name']}}
+                ]
+            }
+        })
+        response_elasticsearch.delete_by_query(index='analyzer-errorlogs', query={
+            'bool': {
+                'must': [
+                    {'term': {'analyzer.keyword': 'fu'}},
+                    {'term': {'reference.keyword': fu.raw['_source']['rule_name']}}
+                ]
+            }
+        })
+        response_elasticsearch.delete_by_query(index='analyzer-action-timestamps', query={
+            'bool': {
+                'must': [
+                    {'term': {'analyzer.keyword': 'FUs'}},
+                    {'term': {'rule_name.keyword': fu.raw['_source']['rule_name']}}
+                ]
+            }
+        })
         return {
             'type': 'fus',
             'data': {

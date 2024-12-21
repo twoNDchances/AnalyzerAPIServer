@@ -26,3 +26,6 @@ if es.indices.exists(index='analyzer-rules'):
 
 if es.indices.exists(index='analyzer-yaras'):
     es.indices.delete(index='analyzer-yaras')
+
+if es.indices.exists(index='analyzer-wordlists'):
+    es.indices.delete(index='analyzer-wordlists')

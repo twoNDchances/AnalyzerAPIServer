@@ -25,22 +25,40 @@ class SQLInjectionRuleDetails(Resource):
                 'reason': 'NotFound: SQL Injection Rule is not found for show'
             }, 404
         rule_types = response_elasticsearch.search(
-                    index='analyzer-rules',
-                    body={
-                        "aggs":{
-                            "unique_names": {
-                                "terms": {
-                                    "field": "rule_type.keyword"
-                                }
-                            }
-                        },
-                        "_source": False
-                    },
-                    size=ES_MAX_RESULT
-                )
+            index='analyzer-rules',
+            body={
+                "aggs":{
+                    "unique_names": {
+                        "terms": {
+                            "field": "rule_type.keyword"
+                        }
+                    }
+                },
+                "_source": False
+            },
+            size=ES_MAX_RESULT
+        )
         choice_rules = {
             'choice': 'not_used' if sqli['_source']['rule_library'] is None else sqli['_source']['rule_library'],
             'rules': [rule_type['key'] for rule_type in rule_types.raw['aggregations']['unique_names']['buckets']]
+        }
+        wordlists = response_elasticsearch.search(
+            index='analyzer-wordlists',
+            body={
+                "aggs":{
+                    "unique_names": {
+                        "terms": {
+                            "field": "wordlist_name.keyword"
+                        }
+                    }
+                },
+                "_source": False
+            },
+            size=ES_MAX_RESULT
+        )
+        choice_wordlists = {
+            'choice': 'not_used' if sqli['_source']['wordlist'] is None else sqli['_source']['wordlist'],
+            'wordlists': [wordlist['key'] for wordlist in wordlists.raw['aggregations']['unique_names']['buckets']]
         }
         actions = response_elasticsearch.search(index='analyzer-actions', query={'match_all': {}}, size=ES_MAX_RESULT)
         choice_actions = {
@@ -57,6 +75,7 @@ class SQLInjectionRuleDetails(Resource):
                 'ip_root_cause_field': sqli['_source']['ip_root_cause_field'],
                 'regex_matcher': sqli['_source']['regex_matcher'],
                 'rule_library': choice_rules,
+                'wordlist': choice_wordlists,
                 'action_id': choice_actions,
                 'type_attack': sqli['_source']['type_attack']
             },

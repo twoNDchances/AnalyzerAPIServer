@@ -50,6 +50,7 @@ def sqli_analyzer_endpoint(rule_name: str):
     ip_root_cause_field = sqli_analyzer['_source']['ip_root_cause_field']
     regex_matcher = sqli_analyzer['_source']['regex_matcher']
     rule_library = sqli_analyzer['_source']['rule_library']
+    wordlist = sqli_analyzer['_source']['wordlist']
     action_id = sqli_analyzer['_source']['action_id']
     logs = {
         '[Warning]': [],
@@ -59,6 +60,7 @@ def sqli_analyzer_endpoint(rule_name: str):
     result = None
     json = request.get_json()
     rules = []
+    word_list = []
     ip_root_cause_field_value = '<>'
     ip_root_cause_field_validation = parse_path(path=ip_root_cause_field)
     all_fields = traverse_json(data=json)
@@ -100,9 +102,18 @@ def sqli_analyzer_endpoint(rule_name: str):
                 })
             else:
                 rules.append(re.compile(rf'{library['_source']['rule_execution']}'))
+    if wordlist is not None:
+        wordlists = response_elasticsearch.search(index='analyzer-wordlists', query={
+            'term': {
+                'wordlist_name.keyword': wordlist
+            }
+        }, size= ES_MAX_RESULT).raw['hits']['hits']
+        for wordlist in wordlists:
+            word_list.append(wordlist['_source']['content'])
     if target_field.__len__() == 0:
         if all_fields.__len__() > 0:
             flag = False
+            is_detected = False
             for field in all_fields:
                 for key, value in field.items():
                     value = decode_hex_escaped_string(input_string=str(value))
@@ -117,7 +128,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 except:
                                     try:
                                         parsed_data = parse_qs(root_cause_value)
-                                        if not root_cause_value:
+                                        if not parsed_data:
                                             raise
                                         root_cause_value = {key: value[0] for key, value in parsed_data.items()}
                                     except:
@@ -137,16 +148,61 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 'field_name': key,
                                 'field_value': root_cause_value,
                                 'by_rule': rule.pattern,
+                                'keyword': None,
                                 '_ip_root_cause_': ip_root_cause_field_value
                             }
+                            is_detected = True
                             flag = True
                             break
                     if flag:
                         break
                 if flag:
                     break
+            if is_detected is False and wordlist is not None:
+                for field in all_fields:
+                    for key, value in field.items():
+                        value = decode_hex_escaped_string(input_string=str(value))
+                        for word in word_list:
+                            if re.search(f'\\b{word}\\b', value):
+                                root_cause_value = hex_escape_to_char(string=value)
+                                try:
+                                    root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                                except:
+                                    try:
+                                        root_cause_value: dict = loads(root_cause_value)
+                                    except:
+                                        try:
+                                            parsed_data = parse_qs(root_cause_value)
+                                            if not parsed_data:
+                                                raise
+                                            root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                                        except:
+                                            logs['[Warning]'].append({
+                                                'Analyzers': {
+                                                    'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                                    'pattern': html.escape(root_cause_value)
+                                                }
+                                            })
+                                if isinstance(root_cause_value, dict):
+                                    for _, _value in root_cause_value.items():
+                                        if re.search(f'\\b{word}\\b', _value):
+                                            root_cause_value = _value
+                                            break
+                                result = {
+                                    '_message_': f'Detected from {rule_name} wordlist of analyzer',
+                                    'field_name': key,
+                                    'field_value': root_cause_value,
+                                    'by_rule': None,
+                                    'keyword': word,
+                                    '_ip_root_cause_': ip_root_cause_field_value
+                                }
+                                flag = True
+                                break
+                        if flag:
+                            break
+                    if flag:
+                        break
             if result is not None:
-                print(result)
                 response_elasticsearch.index(index='analyzer-errorlogs', document={
                     'analyzer': 'sqli',
                     'reference': rule_name,
@@ -184,6 +240,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                             'ip_root_cause_value': ip_root_cause_field_value,
                             'regex_matcher': sqli_analyzer['_source']['regex_matcher'],
                             'rule_library': sqli_analyzer['_source']['rule_library'],
+                            'wordlist': sqli_analyzer['_source']['wordlist'],
                             'action': action.raw['_source']['action_name'],
                             'result': result
                         }, default_body=result, ip_root_cause=ip_root_cause_field_value) is False:
@@ -226,6 +283,7 @@ def sqli_analyzer_endpoint(rule_name: str):
             json_value = get_value_from_json(data=json, path=target_field)
             if json_value is not None:
                 json_value_str = decode_hex_escaped_string(input_string=str(json_value))
+                is_detected = False
                 for rule in rules:
                     if rule.search(json_value_str):
                         root_cause_value = hex_escape_to_char(string=json_value_str)
@@ -237,7 +295,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                             except:
                                 try:
                                     parsed_data = parse_qs(root_cause_value)
-                                    if not root_cause_value:
+                                    if not parsed_data:
                                         raise
                                     root_cause_value = {key: value[0] for key, value in parsed_data.items()}
                                 except:
@@ -257,9 +315,46 @@ def sqli_analyzer_endpoint(rule_name: str):
                             'field_name': target_field,
                             'field_value': root_cause_value,
                             'by_rule': rule.pattern,
+                            'keyword': None,
                             '_ip_root_cause_': ip_root_cause_field_value
                         }
+                        is_detected = True
                         break
+                if is_detected is False and wordlist is not None:
+                    for word in word_list:
+                        if re.search(f'\\b{word}\\b', json_value_str):
+                            root_cause_value = hex_escape_to_char(string=json_value_str)
+                            try:
+                                root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                            except:
+                                try:
+                                    root_cause_value: dict = loads(root_cause_value)
+                                except:
+                                    try:
+                                        parsed_data = parse_qs(root_cause_value)
+                                        if not parsed_data:
+                                            raise
+                                        root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                                    except:
+                                        logs['[Warning]'].append({
+                                            'Analyzers': {
+                                                'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                                'pattern': html.escape(root_cause_value)
+                                            }
+                                        })
+                            if isinstance(root_cause_value, dict):
+                                for _, _value in root_cause_value.items():
+                                    if re.search(f'\\b{word}\\b', _value):
+                                        root_cause_value = _value
+                                        break
+                            result = {
+                                '_message_': f'Detected from {rule_name} wordlist of analyzer',
+                                'field_name': target_field,
+                                'field_value': root_cause_value,
+                                'by_rule': None,
+                                'keyword': word,
+                                '_ip_root_cause_': ip_root_cause_field_value
+                            }
                 if result is not None:
                     response_elasticsearch.index(index='analyzer-errorlogs', document={
                         'analyzer': 'sqli',
@@ -298,6 +393,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 'ip_root_cause_value': ip_root_cause_field_value,
                                 'regex_matcher': sqli_analyzer['_source']['regex_matcher'],
                                 'rule_library': sqli_analyzer['_source']['rule_library'],
+                                'wordlist': sqli_analyzer['_source']['wordlist'],
                                 'action': action.raw['_source']['action_name'],
                                 'result': result
                             }, default_body=result, ip_root_cause=ip_root_cause_field_value) is False:
@@ -349,6 +445,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                 json_value = get_value_from_json(data=json, path=path)
                 if json_value is not None:
                     json_value_str = decode_hex_escaped_string(input_string=str(json_value))
+                    is_detected = False
                     for rule in rules:
                         if rule.search(json_value_str):
                             root_cause_value = hex_escape_to_char(string=json_value_str)
@@ -360,7 +457,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 except:
                                     try:
                                         parsed_data = parse_qs(root_cause_value)
-                                        if not root_cause_value:
+                                        if not parsed_data:
                                             raise
                                         root_cause_value = {key: value[0] for key, value in parsed_data.items()}
                                     except:
@@ -380,9 +477,46 @@ def sqli_analyzer_endpoint(rule_name: str):
                                 'field_name': path,
                                 'field_value': root_cause_value,
                                 'by_rule': rule.pattern,
+                                'keyword': None,
                                 '_ip_root_cause_': ip_root_cause_field_value
                             }
+                            is_detected = True
                             break
+                    if is_detected is False and wordlist is not None:
+                        for word in word_list:
+                            if re.search(f'\\b{word}\\b', json_value_str):
+                                root_cause_value = hex_escape_to_char(string=json_value_str)
+                                try:
+                                    root_cause_value = parse_multipart_form_data(raw_data=root_cause_value)
+                                except:
+                                    try:
+                                        root_cause_value: dict = loads(root_cause_value)
+                                    except:
+                                        try:
+                                            parsed_data = parse_qs(root_cause_value)
+                                            if not parsed_data:
+                                                raise
+                                            root_cause_value = {key: value[0] for key, value in parsed_data.items()}
+                                        except:
+                                            logs['[Warning]'].append({
+                                                'Analyzers': {
+                                                    'message': '"target_value" field not a valid in ["multipart/form-data", "application/json", "application/x-www-form-urlencoded"], original accepted',
+                                                    'pattern': html.escape(root_cause_value)
+                                                }
+                                            })
+                                if isinstance(root_cause_value, dict):
+                                    for _, _value in root_cause_value.items():
+                                        if re.search(f'\\b{word}\\b', _value):
+                                            root_cause_value = _value
+                                            break
+                                result = {
+                                    '_message_': f'Detected from {rule_name} wordlist of analyzer',
+                                    'field_name': path,
+                                    'field_value': root_cause_value,
+                                    'by_rule': None,
+                                    'keyword': word,
+                                    '_ip_root_cause_': ip_root_cause_field_value
+                                }
                     if result is not None:
                         response_elasticsearch.index(index='analyzer-errorlogs', document={
                             'analyzer': 'sqli',
@@ -421,6 +555,7 @@ def sqli_analyzer_endpoint(rule_name: str):
                                     'ip_root_cause_value': ip_root_cause_field_value,
                                     'regex_matcher': sqli_analyzer['_source']['regex_matcher'],
                                     'rule_library': sqli_analyzer['_source']['rule_library'],
+                                    'wordlist': sqli_analyzer['_source']['wordlist'],
                                     'action': action.raw['_source']['action_name'],
                                     'result': result
                                 }, default_body=result, ip_root_cause=ip_root_cause_field_value) is False:

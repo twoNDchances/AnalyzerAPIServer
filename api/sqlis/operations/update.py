@@ -35,7 +35,16 @@ class SQLInjectionRuleModifications(Resource):
                 'reason': 'BadRequest: Body must be JSON'
             }, 400
         request_body = dict(request.get_json())
-        if (request_body.get('ruleName') and request_body.get('isEnabled') and request_body.get('targetField') and request_body.get('ipRootCauseField') and request_body.get('regexMatcher') and request_body.get('ruleLibrary') and request_body.get('action')) is None:
+        if (
+            request_body.get('ruleName') and 
+            request_body.get('isEnabled') and 
+            request_body.get('targetField') and 
+            request_body.get('ipRootCauseField') and 
+            request_body.get('regexMatcher') and 
+            request_body.get('ruleLibrary') and 
+            request_body.get('wordlist') and 
+            request_body.get('action')
+        ) is None:
             return {
                 'type': 'sqlis',
                 'data': None,
@@ -76,6 +85,29 @@ class SQLInjectionRuleModifications(Resource):
                 'data': None,
                 'reason': 'NotFound: Rule Library not found'
             }, 404
+        wordlist_name = response_elasticsearch.search(
+                index='analyzer-wordlists',
+                body={
+                    "aggs":{
+                        "unique_names": {
+                            "terms": {
+                                "field": "wordlist_name.keyword"
+                            }
+                        }
+                    },
+                    "_source": False
+                },
+                size=ES_MAX_RESULT
+            )
+        wordlists = ['not_used']
+        for wordlist in wordlist_name.raw['aggregations']['unique_names']['buckets']:
+            wordlists.append(wordlist['key'])
+        if request_body['wordlist'] not in wordlists:
+            return {
+                'type': 'sqlis',
+                'data': None,
+                'reason': 'NotFound: Wordlist not found'
+            }, 404
         action_names = response_elasticsearch.search(
                 index='analyzer-actions',
                 body={
@@ -111,6 +143,7 @@ class SQLInjectionRuleModifications(Resource):
         old_ip_root_cause_field = sqli.raw['_source']['ip_root_cause_field']
         old_regex_matcher = sqli.raw['_source']['regex_matcher']
         old_rule_library = sqli.raw['_source']['rule_library']
+        old_wordlist = sqli.raw['_source']['wordlist']
         old_action_id = sqli.raw['_source']['action_id']
         if old_rule_name != request_body.get('ruleName'):
             sqlis = response_elasticsearch.search(index='analyzer-sqlis', query={'term': {'rule_name.keyword': request_body['ruleName']}}, size=ES_MAX_RESULT)
@@ -144,6 +177,13 @@ class SQLInjectionRuleModifications(Resource):
 
         if old_rule_library != rule_library:
             old_rule_library = rule_library
+        
+        wordlist = None
+        if request_body.get('wordlist') != 'not_used':
+            wordlist = request_body.get('wordlist')
+
+        if old_wordlist != wordlist:
+            old_wordlist = wordlist
 
         action_id = None
 
@@ -159,6 +199,7 @@ class SQLInjectionRuleModifications(Resource):
             'ip_root_cause_field': old_ip_root_cause_field,
             'regex_matcher': old_regex_matcher,
             'rule_library': old_rule_library,
+            'wordlist': old_wordlist,
             'action_id': old_action_id
         })
         return {
@@ -171,6 +212,7 @@ class SQLInjectionRuleModifications(Resource):
                 'ip_root_cause_field': old_ip_root_cause_field,
                 'regex_matcher': 'Defined' if old_regex_matcher.__len__() != 0 else 'Undefined',
                 'rule_library': old_rule_library if old_rule_library is not None else 'Not Used',
+                'wordlist': old_wordlist if old_wordlist is not None else 'Not Used',
                 'action': self.get_action_type_by_id(id=old_action_id) if old_action_id is not None else 'Inaction'
             },
             'reason': 'Success'

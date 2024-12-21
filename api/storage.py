@@ -45,6 +45,9 @@ def load_rule_library():
 
         if response_elasticsearch.indices.exists(index='analyzer-yaras'):
             response_elasticsearch.indices.delete(index='analyzer-yaras')
+        
+        if response_elasticsearch.indices.exists(index='analyzer-wordlists'):
+            response_elasticsearch.indices.delete(index='analyzer-wordlists')
 
         response_elasticsearch.indices.create(index="analyzer-actions", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-action-timestamps", body=index_settings)
@@ -55,6 +58,7 @@ def load_rule_library():
         response_elasticsearch.indices.create(index="analyzer-fus", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-rules", body=index_settings)
         response_elasticsearch.indices.create(index="analyzer-yaras", body=index_settings)
+        response_elasticsearch.indices.create(index="analyzer-wordlists", body=index_settings)
         response_elasticsearch.index(index='analyzer-yaras', document={
             'yara_rule': 'rule Detect_PHP_Webshell { meta: author = "Analyzer" description = "Detect PHP webshell" version = "1.0" date = "2024-11-18" reference = "Custom Rule for detecting malicious PHP scripts" strings: $php_start = "<?php" $eval = "eval(" $base64_decode = "base64_decode(" $exec = "exec(" $system = "system(" $shell_exec = "shell_exec(" $passthru = "passthru(" $cmd_pattern = /cmd=[a-zA-Z0-9_\\-]+/ $suspicious_code = /[A-Za-z0-9+\\/=]{50,}/ condition: any of them }',
             'yara_description': 'Detect PHP webshell',
@@ -156,11 +160,6 @@ rule php_in_image
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)(?(?=\\b("|\'|&|&&|\\*|`|\\|;)|.*))(or|and|SELECT|UNION)(.*(.*|--))',
-                'rule_description': 'Detect using SQLi by Logic operator'
-            },
-            {
-                'rule_type': 'SQLI',
                 'rule_execution': '(?i)["\'`](?:[\\s\\x0b]*![\\s\\x0b]*["\'0-9A-Z_-z]|;?[\\s\\x0b]*(?:having|select|union\\b[\\s\\x0b]*(?:all|(?:distin|sele)ct))\\b[\\s\\x0b]*[^\\s\\x0b])|\\b(?:(?:(?:c(?:onnection_id|urrent_user)|database|schema|user)[\\s\\x0b]*?|select.*?[0-9A-Z_a-z]?user)\\(|exec(?:ute)?[\\s\\x0b]+master\\.|from[^0-9A-Z_a-z]+information_schema[^0-9A-Z_a-z]|into[\\s\\x0b\\+]+(?:dump|out)file[\\s\\x0b]*?["\'`]|union(?:[\\s\\x0b]select[\\s\\x0b]@|[\\s\\x0b\\(0-9A-Z_a-z]*?select))|[\\s\\x0b]*?exec(?:ute)?.*?[^0-9A-Z_a-z]xp_cmdshell|[^0-9A-Z_a-z]iif[\\s\\x0b]*?\\(',
                 'rule_description': 'Detect using SQLi by UNION'
             },
@@ -231,8 +230,8 @@ rule php_in_image
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b.*=.*\\b',
-                'rule_description': 'Detect conditions with tautologies (Example: \'1\'=\'1\')'
+                'rule_execution': '(?i)\\b\\d+=\\d+\\b',
+                'rule_description': 'Detect conditions with tautologies (Example: 1 = 1)'
             },
             {
                 'rule_type': 'SQLI',

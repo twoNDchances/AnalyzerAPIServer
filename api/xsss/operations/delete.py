@@ -22,9 +22,33 @@ class CrossSiteScriptingRuleTerminations(Resource):
             return {
                 'type': 'xsss',
                 'data': None,
-                'reason': 'NotFound: SQL Injection Rule is not found for delete'
+                'reason': 'NotFound: Cross Site Scripting Rule is not found for delete'
             }, 404
         response_elasticsearch.delete(index='analyzer-xsss', id=xss.raw['_id'])
+        response_elasticsearch.delete_by_query(index='analyzer-results', query={
+            'bool': {
+                'must': [
+                    {'term': {'analyzer.keyword': 'xss'}},
+                    {'term': {'reference.keyword': xss.raw['_source']['rule_name']}}
+                ]
+            }
+        })
+        response_elasticsearch.delete_by_query(index='analyzer-errorlogs', query={
+            'bool': {
+                'must': [
+                    {'term': {'analyzer.keyword': 'xss'}},
+                    {'term': {'reference.keyword': xss.raw['_source']['rule_name']}}
+                ]
+            }
+        })
+        response_elasticsearch.delete_by_query(index='analyzer-action-timestamps', query={
+            'bool': {
+                'must': [
+                    {'term': {'analyzer.keyword': 'XSSs'}},
+                    {'term': {'rule_name.keyword': xss.raw['_source']['rule_name']}}
+                ]
+            }
+        })
         return {
             'type': 'xsss',
             'data': {

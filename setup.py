@@ -119,7 +119,8 @@ def check_elasticsearch():
             'regex_matcher': '',
             'rule_library': 'SQLI',
             'action_id': action_id['_id'],
-            'type_attack': 'sqli'
+            'type_attack': 'sqli',
+            'wordlist': None
         })
     print('[Info] Check done')
     print('[Info] Perform check "analyzer-xsss" index...')
@@ -181,11 +182,6 @@ def check_elasticsearch():
                 'rule_type': 'SQLI',
                 'rule_execution': '(?i).*pg_(catalog|sleep)',
                 'rule_description': 'Detect using SQLi by sleep function'
-            },
-            {
-                'rule_type': 'SQLI',
-                'rule_execution': '(?i)(?(?=\\b("|\'|&|&&|\\*|`|\\|;)|.*))(or|and|SELECT|UNION)(.*(.*|--))',
-                'rule_description': 'Detect using SQLi by Logic operator'
             },
             {
                 'rule_type': 'SQLI',
@@ -259,8 +255,8 @@ def check_elasticsearch():
             },
             {
                 'rule_type': 'SQLI',
-                'rule_execution': '(?i)\\b.*=.*\\b',
-                'rule_description': 'Detect conditions with tautologies (Example: \'1\'=\'1\')'
+                'rule_execution': '(?i)\\b\\d+=\\d+\\b',
+                'rule_description': 'Detect conditions with tautologies (Example: 1 = 1)'
             },
             {
                 'rule_type': 'SQLI',
@@ -466,6 +462,13 @@ rule php_in_image
         print('[Info] Created all default rule of YARAs')
     print('[Info] Check done')
 
+    print('[Info] Perform check "analyzer-wordlists" index...')
+    if not es.indices.exists(index='analyzer-wordlists'):
+        print('[Info] Creating "analyzer-wordlists"...')
+        es.indices.create(index="analyzer-wordlists", body=index_settings)
+        print('[Info] Created "analyzer-wordlists"')
+    print('[Info] Check done')
+
     es.indices.put_settings(
         index='analyzer-actions',
         body={
@@ -516,6 +519,14 @@ rule php_in_image
     )
     es.indices.put_settings(
         index='analyzer-yaras',
+        body={
+            "index": {
+                "max_result_window": ES_MAX_RESULT
+            }
+        }
+    )
+    es.indices.put_settings(
+        index='analyzer-wordlists',
         body={
             "index": {
                 "max_result_window": ES_MAX_RESULT

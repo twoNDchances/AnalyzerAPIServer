@@ -137,7 +137,7 @@ def fus_analyzer_page(rule_name: str):
                     except:
                         try:
                             parsed_data = parse_qs(root_cause_value)
-                            if not root_cause_value:
+                            if not parsed_data:
                                 raise
                             root_cause_value = {key: value[0] for key, value in parsed_data.items()}
                         except:
