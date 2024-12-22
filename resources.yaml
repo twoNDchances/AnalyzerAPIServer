@@ -91,3 +91,8 @@ yaras:
       }
     yara_description: >
       Detect PHP tag
+wordlists:
+  - wordlist_name: test
+    content:
+      - hihi
+      - hahaha

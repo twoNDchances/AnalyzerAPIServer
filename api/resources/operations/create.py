@@ -57,6 +57,7 @@ class ResourceCreations(Resource):
         sqlis = yaml_configuration.get('sqlis')
         xsss = yaml_configuration.get('xsss')
         yaras = yaml_configuration.get('yaras')
+        wordlists = yaml_configuration.get('wordlists')
         logs: dict[dict[str, None | dict | str]] = {
             'actions': {
                 'datatype': None,
@@ -126,6 +127,15 @@ class ResourceCreations(Resource):
                 'fields': [],
                 'validations': {
                     'yara_rule': []
+                },
+                'passed': []
+            },
+            'wordlists': {
+                'datatype': None,
+                'fields': [],
+                'validations': {
+                    'wordlist_name': [],
+                    'content': []
                 },
                 'passed': []
             }
@@ -710,6 +720,47 @@ class ResourceCreations(Resource):
                         'logs': '{}'
                     })
                     logs['fus']['passed'].append(f'{rule_name}')
+        if wordlists is not None:
+            if not isinstance(wordlists, list):
+                logs['wordlists']['datatype'] = 'Wrong, must be <list>'
+            else:
+                for wordlist in wordlists:
+                    wordlist_name = wordlist.get('wordlist_name')
+                    contents = wordlist.get('content')
+                    if not all([wordlist_name, contents]):
+                        logs['wordlists']['fields'].append(f'Missing "wordlist_name", "content"')
+                        continue
+                    if sum(1 for d in wordlists if wordlist_name in d.values()) > 1:
+                        logs['wordlists']['validations']['wordlist_name'].append(f'{wordlist_name} "wordlist_name" is exist in your YAML file')
+                        continue
+                    if not isinstance(wordlist_name, str):
+                        logs['wordlists']['validations']['wordlist_name'].append(f'{wordlist_name} must be (string)')
+                        continue
+                    if not isinstance(contents, list):
+                        logs['wordlists']['validations']['content'].append(f'"content" of {wordlist_name} must be (list)')
+                        continue
+                    if not wordlist_name:
+                        logs['wordlists']['validations']['wordlist_name'].append(f'{wordlist_name} can\'t be empty')
+                        continue
+                    if wordlist_name in [word['key'] for word in response_elasticsearch.search(index='analyzer-wordlists', body={
+                        "aggs":{
+                            "unique_names": {
+                                "terms": {
+                                    "field": "wordlist_name.keyword"
+                                }
+                            }
+                        },
+                        "_source": False
+                    }, size=ES_MAX_RESULT).raw['aggregations']['unique_names']['buckets']]:
+                        logs['wordlists']['validations']['wordlist_name'].append(f'{wordlist_name} "wordlist_name" is exist in Elasticsearch')
+                        continue
+                    for content in contents:
+                        if content:
+                            response_elasticsearch.index(index='analyzer-wordlists', document={
+                                'wordlist_name': wordlist_name,
+                                'content': content
+                            })
+                    logs['wordlists']['passed'].append(f'{wordlist_name}')
         return {
             'type': 'resources',
             'data': logs,
